@@ -1,0 +1,53 @@
+---
+title: "Leatherback CMEMS model"
+toc: false
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+
+The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.
+
+
+## Map Products
+
+```{r}
+library(bslib)
+library(htmltools)
+
+navset_card_underline(
+  nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-25.png?raw=true")),
+  nav_panel(title = "Yesterday", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-08.png?raw=true")),
+  nav_panel(title = "Day before yesterday", p("Add content"))
+)
+```
+
+
+## Interactive Map
+
+This example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).
+
+```{r}
+library(leaflet)
+library(leafem)
+library(terra)
+
+
+# Read sea surface temperature layer from NOAA THREDDS server (using data from 1 Jan 2025)
+r <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/model_prediction/TopPredatorWatch/rasters/pred_2024-11-25_leatherbackTurtle.tiff")
+r <- r |> 
+  project('EPSG:3857')
+
+# Define color palette for raster layer
+pal <- colorNumeric("inferno", domain = values(r), na.color = "transparent")
+
+leaflet() |> 
+  addProviderTiles(provider = providers$CartoDB.DarkMatter, group = "CartoDB") |> 
+  addLayersControl(position = "topright",
+                   baseGroups = "CartoDB",
+                   overlayGroups = "HSI") |> 
+  addRasterImage(r, colors = pal, opacity = 0.8, group = "HSI", layerId = "HSI") |> 
+  addImageQuery(r, layerId = "HSI") |>  #add raster  query
+  addLegend(title = "Habitat Suitability", position = "bottomright", pal = pal, values = values(r))
+```

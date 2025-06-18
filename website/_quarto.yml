@@ -1,0 +1,63 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Operationalization of dynamic ocean management tools for US West Coast"
+  search: true
+  repo-url: https://github.com/joshcullen/CEG_operationalization
+  repo-actions: [edit, issue, source]
+  bread-crumbs: false
+  # site-url: https://future-seas.com
+  # announcement: 
+  #   icon: info-circle
+  #   dismissable: true
+  #   content: "**We Are Hiring** - [Postdoctoral Scholar Position in Fisheries Science and Management Strategy Evaluation](https://future-seas.com/wp-content/uploads/2024/07/FSIII_ad_mse_July2024.pdf){style='color:white'}"
+  #   type: danger
+  #   position: below-navbar
+  sidebar:
+    # logo: images/FutureSeas_logo_text.jpeg.webp
+    style: docked
+    contents:
+      - section: Leatherback Sea Turtle
+        href: leatherback.qmd
+        contents:
+          - lbst_cmems.qmd
+          - lbst_roms.qmd
+      # - href: Science/index.qmd
+      #   text: Science
+      # - href: Products/index.qmd
+      #   text: Products
+      # - href: Team/index.qmd
+      #   text: Team
+  page-footer:
+    left: |
+      &copy; 2025 Josh Cullen
+    right: |
+      This page is built with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)
+
+toc: true
+toc-depth: 5
+  
+# bibliography: references.bib
+# biblio-style: apalike
+# csl: apa.csl
+# link-citations: true
+
+format:
+  html:
+    theme: zephyr
+    code-copy: true
+    code-fold: true
+    code-overflow: wrap
+    link-external-icon: true
+    link-external-newwindow: true
+    fig-align: center
+
+execute: 
+  warning: false
+  message: false
+
+editor: source
+
+highlight-style: github
