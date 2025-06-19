@@ -6,6 +6,7 @@ website:
   title: "Operationalization of dynamic ocean management tools for US West Coast"
   search: true
   repo-url: https://github.com/joshcullen/CEG_operationalization
+  repo-subdir: website
   repo-actions: [edit, issue, source]
   bread-crumbs: false
   # site-url: https://future-seas.com
@@ -47,9 +48,6 @@ toc-depth: 5
 format:
   html:
     theme: zephyr
-    code-copy: true
-    code-fold: true
-    code-overflow: wrap
     link-external-icon: true
     link-external-newwindow: true
     fig-align: center

@@ -4,6 +4,8 @@ toc: false
 editor: 
   markdown: 
     wrap: 72
+execute:
+  echo: false
 ---
 
 
