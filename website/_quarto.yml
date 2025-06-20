@@ -47,10 +47,11 @@ toc-depth: 5
 
 format:
   html:
-    theme: zephyr
+    # theme: zephyr
     link-external-icon: true
     link-external-newwindow: true
     fig-align: center
+    brand: _brand.yml
 
 execute: 
   warning: false

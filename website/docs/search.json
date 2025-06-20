@@ -15,7 +15,7 @@
     "href": "lbst_cmems.html#map-products",
     "title": "Leatherback CMEMS model",
     "section": "Map Products",
-    "text": "Map Products\n\n\n\n\n\n\nLatest\n\n\nYesterday\n\n\nDay before yesterday\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAdd content",
+    "text": "Map Products\n\n\n\n\n\n\n\n\n\nLatest\n\n\nYesterday\n\n\nDay before yesterday\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAdd content",
     "crumbs": [
       "Leatherback Sea Turtle",
       "Leatherback CMEMS model"
@@ -26,7 +26,7 @@
     "href": "lbst_cmems.html#interactive-map",
     "title": "Leatherback CMEMS model",
     "section": "Interactive Map",
-    "text": "Interactive Map\nThis example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).",
+    "text": "Interactive Map\nThis example only shows prediction for 2024-11-25, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).\n\n\n\n\n\n\nModel Prediction\n\n\nEnviron. Predictors",
     "crumbs": [
       "Leatherback Sea Turtle",
       "Leatherback CMEMS model"
@@ -58,7 +58,7 @@
     "href": "lbst_roms.html#map-products",
     "title": "Leatherback ROMS model",
     "section": "Map Products",
-    "text": "Map Products\n\n\n\n\n\n\nLatest\n\n\nYesterday\n\n\nDay before yesterday\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAdd content",
+    "text": "Map Products\n\n\n\n\n\n\n\n\n\nLatest\n\n\nYesterday\n\n\nDay before yesterday\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAdd content",
     "crumbs": [
       "Leatherback Sea Turtle",
       "Leatherback ROMS model"
@@ -69,7 +69,7 @@
     "href": "lbst_roms.html#interactive-map",
     "title": "Leatherback ROMS model",
     "section": "Interactive Map",
-    "text": "Interactive Map\nThis example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).",
+    "text": "Interactive Map\nThis example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).\n\n\n\n\n\n\nModel Prediction\n\n\nEnviron. Predictors",
     "crumbs": [
       "Leatherback Sea Turtle",
       "Leatherback ROMS model"

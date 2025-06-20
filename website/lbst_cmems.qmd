@@ -18,9 +18,19 @@ The most recent map products from the model are shown below, in addition to an i
 library(bslib)
 library(htmltools)
 
-navset_card_underline(
-  nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-25.png?raw=true")),
-  nav_panel(title = "Yesterday", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-08.png?raw=true")),
+bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
+  lapply(function(x) {
+    if (x$name == "bootstrap") {
+      x$name <- "bootstrap-from-bslib"
+    }
+    x
+  }) |>
+  htmltools::tagList()
+
+
+navset_card_tab(
+  nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-25.png?raw=true", width = "100%")),
+  nav_panel(title = "Yesterday", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "100%")),
   nav_panel(title = "Day before yesterday", p("Add content"))
 )
 ```
@@ -28,28 +38,137 @@ navset_card_underline(
 
 ## Interactive Map
 
-This example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).
+This example only shows prediction for 2024-11-25, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).
 
 ```{r}
+#| column: body
+
 library(leaflet)
 library(leafem)
 library(terra)
+library(cmocean)
 
 
-# Read sea surface temperature layer from NOAA THREDDS server (using data from 1 Jan 2025)
+### Read in raster layers for latest date
+
+# Model prediction
 r <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/model_prediction/TopPredatorWatch/rasters/pred_2024-11-25_leatherbackTurtle.tiff")
-r <- r |> 
-  project('EPSG:3857')
 
-# Define color palette for raster layer
+# Environmental predictors
+npp <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/PPupper200m_2024-11-25.tiff")
+eke <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/eke_2024-11-25.tiff")
+chl <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/l.chl_2024-11-25.tiff")
+mld <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/mld_2024-11-25.tiff")
+o2 <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/oxy200m_2024-11-25.tiff")
+sla <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/sla_2024-11-25.tiff")
+sst <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/sst_2024-11-25.tiff")
+sst_sd <- rast("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/refs/heads/main/data_processing/TopPredatorWatch/rasters/sst_sd_2024-11-25.tiff")
+
+
+### Process rasters
+
+# Merge all covars and crop to model extent
+covars <- c(npp, eke, chl, mld, o2, sla, sst, sst_sd)
+covars <- crop(covars, r)
+
+# Reproject so properly mapped by leaflet
+r <- project(r, 'EPSG:3857')
+covars <- project(covars, 'EPSG:3857')
+
+# Define color palette for raster layers
 pal <- colorNumeric("inferno", domain = values(r), na.color = "transparent")
+npp.pal <- colorNumeric(cmocean::cmocean("algae")(256), domain = values(covars[[1]]), na.color = "transparent")
+eke.pal <- colorNumeric(cmocean::cmocean("tempo")(256), domain = values(covars[[2]]), na.color = "transparent")
+chl.pal <- colorNumeric(cmocean::cmocean("algae")(256), domain = values(covars[[3]]), na.color = "transparent")
+mld.pal <- colorNumeric(cmocean::cmocean("dense")(256), domain = values(covars[[4]]), na.color = "transparent")
+o2.pal <- colorNumeric(cmocean::cmocean("matter")(256), domain = values(covars[[5]]), na.color = "transparent")
+sla.pal <- colorNumeric(cmocean::cmocean("delta")(256), domain = values(covars[[6]]), na.color = "transparent")
+sst.pal <- colorNumeric(cmocean::cmocean("thermal")(256), domain = values(covars[[7]]), na.color = "transparent")
+sst_sd.pal <- colorNumeric(cmocean::cmocean("amp")(256), domain = values(covars[[8]]), na.color = "transparent")
 
-leaflet() |> 
-  addProviderTiles(provider = providers$CartoDB.DarkMatter, group = "CartoDB") |> 
-  addLayersControl(position = "topright",
-                   baseGroups = "CartoDB",
-                   overlayGroups = "HSI") |> 
-  addRasterImage(r, colors = pal, opacity = 0.8, group = "HSI", layerId = "HSI") |> 
-  addImageQuery(r, layerId = "HSI") |>  #add raster  query
-  addLegend(title = "Habitat Suitability", position = "bottomright", pal = pal, values = values(r))
+navset_card_tab(
+  nav_panel(title = "Model Prediction",
+            card(full_screen = TRUE,
+                 leaflet() |> 
+                   setView(lng = -130, lat = 30, zoom = 3) |> 
+                   addProviderTiles(provider = providers$CartoDB.DarkMatter, group = "CartoDB",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addProviderTiles(provider = providers$Esri.WorldImagery, group = "Satellite",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addProviderTiles(provider = providers$Esri.OceanBasemap, group = "Bathymetry",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addLayersControl(position = "topright",
+                                    baseGroups = c("CartoDB","Satellite","Bathymetry"),
+                                    overlayGroups = "HSI",
+                                    options = layersControlOptions(collapsed = TRUE, autoZIndex = FALSE)) |> 
+                   addRasterImage(r, colors = pal, opacity = 0.8, group = "HSI", layerId = "HSI") |> 
+                   addImageQuery(r, layerId = "HSI") |>  #add raster  query
+                   addLegend(title = "Habitat Suitability", position = "bottomright", pal = pal, values = values(r))
+            )
+  ),
+  
+  nav_panel(title = "Environ. Predictors",
+            card(full_screen = TRUE,
+                 leaflet() |> 
+                   setView(lng = -130, lat = 30, zoom = 3) |> 
+                   addProviderTiles(provider = providers$CartoDB.DarkMatter, group = "CartoDB",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addProviderTiles(provider = providers$Esri.WorldImagery, group = "Satellite",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addProviderTiles(provider = providers$Esri.OceanBasemap, group = "Bathymetry",
+                                    options = providerTileOptions(zIndex = -10)) |> 
+                   addLayersControl(position = "topright",
+                                    baseGroups = c("CartoDB","Satellite","Bathymetry"),
+                                    overlayGroups = c("PPupper200m","EKE","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"),
+                                    options = layersControlOptions(collapsed = TRUE, autoZIndex = FALSE)) |> 
+                   
+                   addRasterImage(covars[[1]], colors = npp.pal, opacity = 1, group = "PPupper200m",
+                                  layerId = "PPupper200m") |> 
+                   addImageQuery(covars[[1]], layerId = "PPupper200m") |>  #add raster  query
+                   addLegend(title = "PPupper200m", position = "bottomright", pal = npp.pal,
+                             values = values(covars[[1]]), group = "PPupper200m") |> 
+                   
+                   addRasterImage(covars[[2]], colors = eke.pal, opacity = 1, group = "EKE", layerId = "EKE") |> 
+                   addImageQuery(covars[[2]], layerId = "EKE") |>  #add raster  query
+                   addLegend(title = "EKE", position = "bottomright", pal = eke.pal, values = values(covars[[2]]),
+                             group = "EKE") |> 
+                   
+                   addRasterImage(covars[[3]], colors = chl.pal, opacity = 1, group = "log(Chla)",
+                                  layerId = "log(Chla)") |> 
+                   addImageQuery(covars[[3]], layerId = "log(Chla)") |>  #add raster  query
+                   addLegend(title = "log(Chla)", position = "bottomright", pal = chl.pal,
+                             values = values(covars[[3]]), group = "log(Chla)") |> 
+                   
+                   addRasterImage(covars[[4]], colors = mld.pal, opacity = 1, group = "MLD", layerId = "MLD") |> 
+                   addImageQuery(covars[[4]], layerId = "MLD") |>  #add raster  query
+                   addLegend(title = "MLD", position = "bottomright", pal = mld.pal, values = values(covars[[4]]),
+                             group = "MLD") |> 
+                   
+                   addRasterImage(covars[[5]], colors = o2.pal, opacity = 1, group = "Oxy200m",
+                                  layerId = "Oxy200m") |> 
+                   addImageQuery(covars[[5]], layerId = "Oxy200m") |>  #add raster  query
+                   addLegend(title = "Oxy200m", position = "bottomright", pal = o2.pal,
+                             values = values(covars[[5]]), group = "Oxy200m") |> 
+                   
+                   addRasterImage(covars[[6]], colors = sla.pal, opacity = 1, group = "SLA", layerId = "SLA") |> 
+                   addImageQuery(covars[[6]], layerId = "SLA") |>  #add raster  query
+                   addLegend(title = "SLA", position = "bottomright", pal = sla.pal, values = values(covars[[6]]),
+                             group = "SLA") |> 
+                   
+                   addRasterImage(covars[[7]], colors = sst.pal, opacity = 1, group = "SST", layerId = "SST") |> 
+                   addImageQuery(covars[[7]], layerId = "SST") |>  #add raster  query
+                   addLegend(title = "SST", position = "bottomright", pal = sst.pal, values = values(covars[[7]]),
+                             group = "SST") |> 
+                   
+                   addRasterImage(covars[[8]], colors = sst_sd.pal, opacity = 1, group = "SST_SD",
+                                  layerId = "SST_SD") |> 
+                   addImageQuery(covars[[8]], layerId = "SST_SD") |>  #add raster  query
+                   addLegend(title = "SST_SD", position = "bottomright", pal = sst_sd.pal,
+                             values = values(covars[[8]]), group = "SST_SD") |> 
+                   
+                   hideGroup(c("EKE","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"))
+            )
+  )
+)
+
 ```
