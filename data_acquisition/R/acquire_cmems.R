@@ -10,7 +10,7 @@ source("data_acquisition/R/acquire_utils.R")
 
 
 # Load metadata
-meta <- read_csv("docs/model_metadata.csv")
+meta <- read_csv("metadata/model_metadata.csv")
 
 # Define output directories
 ncdir_cmems = "data_acquisition/netcdfs/cmems_ncdfs"
@@ -31,7 +31,7 @@ meta_cmems <- meta |>
          category != 'derived' | is.na(category)) |>
   mutate(var_depth_min = case_when(variable != 'o2' ~ 0,
                                    TRUE ~ 200),
-         var_depth_max = case_when(variable %in% c('analysed_sst','CHL','mlotst') ~ 0,
+         var_depth_max = case_when(variable %in% c('analysed_sst','CHL','mlotst') ~ 1,
                                    TRUE ~ 200))
 
 

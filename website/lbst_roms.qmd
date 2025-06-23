@@ -11,8 +11,35 @@ execute:
 
 The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.
 
+```{r}
+#| label: check-roms
+#| warning: false
+#| include: false
 
-## Map Products
+source("utils.R")
+
+# Set today's date
+get_date <- Sys.Date()
+
+# Define dates of interest (related to 4-day lag from ROMS server)
+dates <- get_date - 0:5
+
+# ROMS status check
+status <- sapply(dates, \(x) check_roms(x)) |> 
+  any()
+
+# Create badge based on result of ROMS status check
+badge <- ifelse(status,
+                "[![Static Badge](https://img.shields.io/badge/Status-Running-brightgreen?style=flat)](https://oceanmodeling.ucsc.edu/ccsnrt/)",
+                "[![Static Badge](https://img.shields.io/badge/Status-Down-red?style=flat)](https://oceanmodeling.ucsc.edu/ccsnrt/)"
+)
+```
+
+
+**Status of environmental products from ROMS:** `r paste0(badge)`
+
+
+## Latest Map Products
 
 ```{r}
 library(bslib)
@@ -30,8 +57,8 @@ bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
 
 navset_card_tab(
   nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/leatherbackTurtle_2024-11-24.png?raw=true", width = "50%")),
-  nav_panel(title = "Yesterday", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "50%")),
-  nav_panel(title = "Day before yesterday", p("Add content"))
+  nav_panel(title = "Latest - 1", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "50%")),
+  nav_panel(title = "Latest - 2", p("Add content"))
 )
 ```
 
@@ -46,6 +73,7 @@ This example only shows prediction for 2024-11-24, but we could potentially make
 library(leaflet)
 library(leafem)
 library(terra)
+library(cmocean)
 
 
 ### Read in raster layers for latest date
@@ -72,14 +100,14 @@ covars <- c(eke, bv, curl, ild, ssh, ssh_sd, sst, sst_sd)
 
 # Define color palette for raster layer
 pal <- colorNumeric("inferno", domain = values(r), na.color = "transparent")
-eke.pal <- colorNumeric(cmocean::cmocean("tempo")(256), domain = values(covars[[1]]), na.color = "transparent")
-bv.pal <- colorNumeric(cmocean::cmocean("deep")(256), domain = values(covars[[2]]), na.color = "transparent")
-curl.pal <- colorNumeric(cmocean::cmocean("curl")(256), domain = values(covars[[3]]), na.color = "transparent")
-ild.pal <- colorNumeric(cmocean::cmocean("dense")(256), domain = values(covars[[4]]), na.color = "transparent")
-ssh.pal <- colorNumeric(cmocean::cmocean("delta")(256), domain = values(covars[[5]]), na.color = "transparent")
-ssh_sd.pal <- colorNumeric(cmocean::cmocean("matter")(256), domain = values(covars[[6]]), na.color = "transparent")
-sst.pal <- colorNumeric(cmocean::cmocean("thermal")(256), domain = values(covars[[7]]), na.color = "transparent")
-sst_sd.pal <- colorNumeric(cmocean::cmocean("amp")(256), domain = values(covars[[8]]), na.color = "transparent")
+eke.pal <- colorNumeric(cmocean("tempo")(256), domain = values(covars[[1]]), na.color = "transparent")
+bv.pal <- colorNumeric(cmocean("deep")(256), domain = values(covars[[2]]), na.color = "transparent")
+curl.pal <- colorNumeric(cmocean("curl")(256), domain = values(covars[[3]]), na.color = "transparent")
+ild.pal <- colorNumeric(cmocean("dense")(256), domain = values(covars[[4]]), na.color = "transparent")
+ssh.pal <- colorNumeric(cmocean("delta")(256), domain = values(covars[[5]]), na.color = "transparent")
+ssh_sd.pal <- colorNumeric(cmocean("matter")(256), domain = values(covars[[6]]), na.color = "transparent")
+sst.pal <- colorNumeric(cmocean("thermal")(256), domain = values(covars[[7]]), na.color = "transparent")
+sst_sd.pal <- colorNumeric(cmocean("amp")(256), domain = values(covars[[8]]), na.color = "transparent")
 
 
 navset_card_tab(

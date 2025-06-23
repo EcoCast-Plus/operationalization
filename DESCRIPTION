@@ -27,3 +27,9 @@ Imports:
     pals,
     remotes,
     httr
+    bslib
+    htmltools
+    leaflet
+    leafem
+    cmocean
+    jsonlite

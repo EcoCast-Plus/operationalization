@@ -8,11 +8,60 @@ execute:
   echo: false
 ---
 
+The most recent map products from the model are shown below, in addition
+to an interactive map of the latest prediction.
 
-The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.
+```{r}
+#| label: check-cmems
+#| warning: false
+#| include: false
+
+library(readr)
+library(dplyr)
+library(purrr)
+
+source("utils.R")
+
+# Load metadata
+meta_df <- read_csv("../metadata/model_metadata.csv") |> 
+  filter(data_type == 'CMEMS',
+         category != 'derived' | is.na(category)) |> 
+  distinct(product, .keep_all = TRUE)
+
+# Set today's date
+get_date <- Sys.Date() - 1
 
 
-## Map Products
+# CMEMS status check
+status <- sapply(meta_df$product,
+                 \(x) check_cmems(path_copernicus_marine_toolbox = "/usr/share/miniconda/envs/test/bin/copernicusmarine",
+                                                   productID = x, get_date = get_date))
+
+# Create badge based on result of CMEMS status check
+badge <- map2(.x = status,
+              .y = meta_df$url,
+             ~{ifelse(.x,
+                      glue::glue("[![Static Badge](https://img.shields.io/badge/Status-Running-brightgreen?style=flat)]({.y})"),
+                      glue::glue("[![Static Badge](https://img.shields.io/badge/Status-Down-red?style=flat)]({.y})")
+             )}
+)
+```
+
+**Status of environmental products from CMEMS:** 
+
+```{r}
+#| label: print-badges
+#| results: asis
+
+for (i in seq_along(badge)) {
+  cat("- ")
+  cat(paste0(names(badge)[i], ": "))
+  cat(paste(badge[[i]], "\n"))
+}
+```
+  
+
+## Latest Map Products
 
 ```{r}
 library(bslib)
@@ -30,15 +79,16 @@ bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
 
 navset_card_tab(
   nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-25.png?raw=true", width = "100%")),
-  nav_panel(title = "Yesterday", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "100%")),
-  nav_panel(title = "Day before yesterday", p("Add content"))
+  nav_panel(title = "Latest - 1", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "100%")),
+  nav_panel(title = "Latest - 2", p("Add content"))
 )
 ```
 
-
 ## Interactive Map
 
-This example only shows prediction for 2024-11-25, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).
+This example only shows prediction for 2024-11-25, but we could
+potentially make some adjustments to allow selection of one of dates
+shown above (or more).
 
 ```{r}
 #| column: body
@@ -77,14 +127,14 @@ covars <- project(covars, 'EPSG:3857')
 
 # Define color palette for raster layers
 pal <- colorNumeric("inferno", domain = values(r), na.color = "transparent")
-npp.pal <- colorNumeric(cmocean::cmocean("algae")(256), domain = values(covars[[1]]), na.color = "transparent")
-eke.pal <- colorNumeric(cmocean::cmocean("tempo")(256), domain = values(covars[[2]]), na.color = "transparent")
-chl.pal <- colorNumeric(cmocean::cmocean("algae")(256), domain = values(covars[[3]]), na.color = "transparent")
-mld.pal <- colorNumeric(cmocean::cmocean("dense")(256), domain = values(covars[[4]]), na.color = "transparent")
-o2.pal <- colorNumeric(cmocean::cmocean("matter")(256), domain = values(covars[[5]]), na.color = "transparent")
-sla.pal <- colorNumeric(cmocean::cmocean("delta")(256), domain = values(covars[[6]]), na.color = "transparent")
-sst.pal <- colorNumeric(cmocean::cmocean("thermal")(256), domain = values(covars[[7]]), na.color = "transparent")
-sst_sd.pal <- colorNumeric(cmocean::cmocean("amp")(256), domain = values(covars[[8]]), na.color = "transparent")
+npp.pal <- colorNumeric(cmocean("algae")(256), domain = values(covars[[1]]), na.color = "transparent")
+eke.pal <- colorNumeric(cmocean("tempo")(256), domain = values(covars[[2]]), na.color = "transparent")
+chl.pal <- colorNumeric(cmocean("algae")(256), domain = values(covars[[3]]), na.color = "transparent")
+mld.pal <- colorNumeric(cmocean("dense")(256), domain = values(covars[[4]]), na.color = "transparent")
+o2.pal <- colorNumeric(cmocean("matter")(256), domain = values(covars[[5]]), na.color = "transparent")
+sla.pal <- colorNumeric(cmocean("delta")(256), domain = values(covars[[6]]), na.color = "transparent")
+sst.pal <- colorNumeric(cmocean("thermal")(256), domain = values(covars[[7]]), na.color = "transparent")
+sst_sd.pal <- colorNumeric(cmocean("amp")(256), domain = values(covars[[8]]), na.color = "transparent")
 
 navset_card_tab(
   nav_panel(title = "Model Prediction",
