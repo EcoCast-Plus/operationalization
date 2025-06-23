@@ -169,7 +169,7 @@ navset_card_tab(
                                     options = providerTileOptions(zIndex = -10)) |> 
                    addLayersControl(position = "topright",
                                     baseGroups = c("CartoDB","Satellite","Bathymetry"),
-                                    overlayGroups = c("PPupper200m","EKE","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"),
+                                    overlayGroups = c("PPupper200m","log(EKE)","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"),
                                     options = layersControlOptions(collapsed = TRUE, autoZIndex = FALSE)) |> 
                    
                    addRasterImage(covars[[1]], colors = npp.pal, opacity = 1, group = "PPupper200m",
@@ -178,10 +178,10 @@ navset_card_tab(
                    addLegend(title = "PPupper200m", position = "bottomright", pal = npp.pal,
                              values = values(covars[[1]]), group = "PPupper200m") |> 
                    
-                   addRasterImage(covars[[2]], colors = eke.pal, opacity = 1, group = "EKE", layerId = "EKE") |> 
-                   addImageQuery(covars[[2]], layerId = "EKE") |>  #add raster  query
-                   addLegend(title = "EKE", position = "bottomright", pal = eke.pal, values = values(covars[[2]]),
-                             group = "EKE") |> 
+                   addRasterImage(covars[[2]], colors = eke.pal, opacity = 1, group = "log(EKE)", layerId = "log(EKE)") |> 
+                   addImageQuery(covars[[2]], layerId = "log(EKE)") |>  #add raster  query
+                   addLegend(title = "log(EKE)", position = "bottomright", pal = eke.pal, values = values(covars[[2]]),
+                             group = "log(EKE)") |> 
                    
                    addRasterImage(covars[[3]], colors = chl.pal, opacity = 1, group = "log(Chla)",
                                   layerId = "log(Chla)") |> 
@@ -216,7 +216,7 @@ navset_card_tab(
                    addLegend(title = "SST_SD", position = "bottomright", pal = sst_sd.pal,
                              values = values(covars[[8]]), group = "SST_SD") |> 
                    
-                   hideGroup(c("EKE","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"))
+                   hideGroup(c("log(EKE)","log(Chla)","MLD","Oxy200m","SLA","SST","SST_SD"))
             )
   )
 )

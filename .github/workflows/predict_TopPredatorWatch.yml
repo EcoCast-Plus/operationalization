@@ -21,6 +21,7 @@ on:
 jobs:
   predict-TopPred:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -56,3 +57,9 @@ jobs:
         git add .
         git commit -m 'Made predictions for Top Predator Watch'
         git push
+  process-TopPred-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed'
+      

@@ -141,13 +141,13 @@ navset_card_tab(
                                     options = providerTileOptions(zIndex = -10)) |> 
                    addLayersControl(position = "topright",
                                     baseGroups = c("CartoDB","Satellite","Bathymetry"),
-                                    overlayGroups = c("EKE","BV","Curl","ILD","SSH","SSH_SD","SST","SST_SD"),
+                                    overlayGroups = c("log(EKE)","BV","Curl","ILD","SSH","SSH_SD","SST","SST_SD"),
                                     options = layersControlOptions(collapsed = TRUE, autoZIndex = FALSE)) |> 
                    
-                   addRasterImage(covars[[1]], colors = eke.pal, opacity = 1, group = "EKE", layerId = "EKE") |> 
-                   addImageQuery(covars[[1]], layerId = "EKE") |>  #add raster  query
-                   addLegend(title = "EKE", position = "bottomright", pal = eke.pal, values = values(covars[[1]]),
-                             group = "EKE") |> 
+                   addRasterImage(covars[[1]], colors = eke.pal, opacity = 1, group = "log(EKE)", layerId = "log(EKE)") |> 
+                   addImageQuery(covars[[1]], layerId = "log(EKE)") |>  #add raster  query
+                   addLegend(title = "log(EKE)", position = "bottomright", pal = eke.pal, values = values(covars[[1]]),
+                             group = "log(EKE)") |> 
                    
                    addRasterImage(covars[[2]], colors = bv.pal, opacity = 1, group = "BV", layerId = "BV") |> 
                    addImageQuery(covars[[2]], layerId = "BV") |>  #add raster  query
