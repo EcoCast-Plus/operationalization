@@ -57,11 +57,11 @@ check_cmems = function(path_copernicus_marine_toolbox = "copernicusmarine",
   # Check to see where time is stored; varies by product
   if (dims[[1]]$coordinate_id == "time" & grepl("^milliseconds", dims[[1]]$coordinate_unit)) {
     
-    max_date <- as_datetime(dims[[1]]$maximum_value / 1000)
+    max_date <- lubridate::as_datetime(dims[[1]]$maximum_value / 1000)
     
   } else if (dims[[4]]$coordinate_id == "time" & grepl("^milliseconds", dims[[4]]$coordinate_unit)) {
     
-    max_date <- as_datetime(dims[[4]]$maximum_value / 1000)
+    max_date <- lubridate::as_datetime(dims[[4]]$maximum_value / 1000)
     
   } else {
     stop("Need to fix bug in parsing of time")
