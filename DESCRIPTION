@@ -26,10 +26,10 @@ Imports:
     rnaturalearth,
     pals,
     remotes,
-    httr
-    bslib
-    htmltools
-    leaflet
-    leafem
-    cmocean
+    httr,
+    bslib,
+    htmltools,
+    leaflet,
+    leafem,
+    cmocean,
     jsonlite
