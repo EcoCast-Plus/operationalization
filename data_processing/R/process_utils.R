@@ -59,6 +59,24 @@ process_vars = function(infile, indir, variable, outdir, savename, get_date, too
 #' 
 process_vars_TopPred = function(infile, indir, variable, outdir, savename, get_date, template) {
   
+  # Attempt to use recent data if not available for get_date
+  if (!file.exists(glue("{indir}/{infile}"))) {
+    
+    # Try finding next most recent file (up to 7 days prior)
+    dates <- get_date - 1:7
+    
+    oo <- 1
+    while (oo <= length(dates)) {
+      infile <- gsub(x = infile, pattern = get_date + 1 - oo, replacement = dates[oo])
+      oo <- oo + 1
+      
+      if (file.exists(glue("{indir}/{infile}"))) {
+        cat("Successfully found recent data to replace missing date\n")
+        break
+      }
+    }
+  }
+  
   # Only attempt to process if file exists
   if (file.exists(glue("{indir}/{infile}"))) {
     

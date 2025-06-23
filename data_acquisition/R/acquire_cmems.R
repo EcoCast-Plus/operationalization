@@ -57,7 +57,7 @@ tryCatch(
 
   },
   error = function(e){
-    message(glue("{variable_cmems} from CMEMS not available {get_date}"))
+    message(glue("{variable} from CMEMS not available {get_date}"))
     print(e)
   }
 )
