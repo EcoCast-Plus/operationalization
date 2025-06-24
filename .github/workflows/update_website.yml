@@ -29,7 +29,19 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-    
+
+    - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: 3.11
+
+    - name: Install Copernicus Marine Toolbox
+      shell: bash -el {0}
+      run: |
+        conda install -c conda-forge copernicusmarine
+        conda install scipy
+
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
 
