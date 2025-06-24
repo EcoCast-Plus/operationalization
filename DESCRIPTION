@@ -32,4 +32,5 @@ Imports:
     leaflet,
     leafem,
     cmocean,
-    jsonlite
+    jsonlite,
+    shiny
