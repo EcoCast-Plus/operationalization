@@ -35,8 +35,8 @@ get_date <- Sys.Date() - 1
 
 # CMEMS status check
 status <- sapply(meta_df$product,
-                 # \(x) check_cmems(path_copernicus_marine_toolbox = "/usr/share/miniconda/envs/test/bin/copernicusmarine",
-                 \(x) check_cmems(path_copernicus_marine_toolbox = "copernicusmarine",
+                 \(x) check_cmems(path_copernicus_marine_toolbox = "/usr/share/miniconda/envs/test/bin/copernicusmarine",
+                 # \(x) check_cmems(path_copernicus_marine_toolbox = "copernicusmarine",
                                                    productID = x, get_date = get_date))
 
 # Create badge based on result of CMEMS status check
