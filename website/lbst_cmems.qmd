@@ -100,7 +100,9 @@ navset_card_tab(
   nav_panel(title = "Latest - 1",
             img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[2]]}?raw=true", width = "100%"))),
   nav_panel(title = "Latest - 2",
-            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[3]]}?raw=true", width = "100%")))
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[3]]}?raw=true", width = "100%"))),
+  nav_panel(title = "Latest - 3",
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[4]]}?raw=true", width = "100%")))
   )
 ```
 
