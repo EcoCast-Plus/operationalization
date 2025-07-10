@@ -69,7 +69,7 @@ check_cmems = function(path_copernicus_marine_toolbox = "copernicusmarine",
   
   
   # Store result of server check (that server is running)
-  res <- max_date >= get_date
+  res <- max_date >= get_date - 7  #check if data available w/in 7 days of current date
   
   
   return(res)

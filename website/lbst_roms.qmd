@@ -8,8 +8,8 @@ execute:
   echo: false    
 ---
 
-
-The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.
+The most recent map products from the model are shown below, in addition
+to an interactive map of the latest prediction.
 
 ```{r}
 #| label: check-roms
@@ -33,11 +33,33 @@ badge <- ifelse(status,
                 "[![Static Badge](https://img.shields.io/badge/Status-Running-brightgreen?style=flat)](https://oceanmodeling.ucsc.edu/ccsnrt/)",
                 "[![Static Badge](https://img.shields.io/badge/Status-Down-red?style=flat)](https://oceanmodeling.ucsc.edu/ccsnrt/)"
 )
-```
 
+# If ROMS down, how long?
+if (status == FALSE) {
+  dates1 <- get_date
+  status1 <- FALSE
+  
+  while (status1 == FALSE) {
+    status1 <- check_roms(dates1 - 1)
+    
+    if (status1 == TRUE) {
+      days_down <- as.numeric(get_date - dates1)
+      break
+    } else {
+      dates1 <- dates1 - 1
+    }
+    
+  }
+  
+}
+
+```
 
 **Status of environmental products from ROMS:** `r paste0(badge)`
 
+[ROMS THREDDS server](https://oceanmodeling.ucsc.edu/thredds/dodsC/ccsra_2016a_phys_agg_zlevs/fmrc/CCSRA_2016a_Phys_ROMS_z-level_(depth)_Aggregation_best.ncd.html)
+
+[*`r if (status == FALSE) paste("ROMS has been down for", days_down, "days")`*]{style="color: red;"}
 
 ## Latest Map Products
 
@@ -62,10 +84,11 @@ navset_card_tab(
 )
 ```
 
-
 ## Interactive Map
 
-This example only shows prediction for 2024-11-24, but we could potentially make some adjustments to allow selection of one of dates shown above (or more).
+This example only shows prediction for 2024-11-24, but we could
+potentially make some adjustments to allow selection of one of dates
+shown above (or more).
 
 ```{r}
 #| column: body
@@ -193,4 +216,3 @@ navset_card_tab(
   )
 )
 ```
-

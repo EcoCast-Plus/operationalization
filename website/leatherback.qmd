@@ -8,7 +8,7 @@ editor:
 
 
 
-As an endangered species, leatherback turtles are protected under the Endangered Species Act, which also frequently their consideration in fisheries management plans. Given the ubiquity of this consideration for a number of West Coast fisheries, a number of different species distribution models have been built to predict where these turtles are likely to occur in near-real time. This webpage includes a couple examples of models included in Welch et al (2023) and in Lezama-Ochoa (in press) based on two different environmental datasets:
+As an endangered species, leatherback turtles are protected under the Endangered Species Act, which also frequently their consideration in fisheries management plans. Given the ubiquity of this consideration for a number of West Coast fisheries, a number of different species distribution models have been built to predict where these turtles are likely to occur in near-real time. This webpage includes a couple examples of models included in Welch et al (2023) and in Lezama-Ochoa et al (2025) based on two different environmental datasets:
 [Copernicus Marine Environmental Monitoring Service (CMEMS)](https://marine.copernicus.eu) and [Regional Ocean Modeling System](https://oceanmodeling.ucsc.edu/ccsnrt/).
 
 ### CMEMS
@@ -35,7 +35,8 @@ and explore the model predictions
 ::: {.column width="60%"}
 This model is very similar to that of the other model developed as part of Top Predator Watch, but relies on a slightly different set of environmental variables using a different data assimilative model specific to the US West Coast. The mapped prediction from this model can be seen to the right of this text.
 
-Explore the model predictions
+Learn more about these models [here](https://doi.org/10.1038/s44183-025-00136-3)
+and explore the model predictions
 [here](lbst_roms.qmd).
 :::
 
