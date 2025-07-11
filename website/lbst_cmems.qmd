@@ -108,10 +108,13 @@ navset_card_tab(
 
 ## Interactive Map
 
-This example only shows prediction for 2024-11-25, but we could
-potentially make some adjustments to allow selection of one of dates
-shown above (or more).
+This example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail.
 
+```{=html}
+<iframe width="900" height="650" src="https://joshcullen.shinyapps.io/leatherback_cmems_model/"></iframe>
+```
+
+:::{.content-hidden}
 ```{r}
 #| column: body
 
@@ -244,3 +247,4 @@ navset_card_tab(
 )
 
 ```
+:::
