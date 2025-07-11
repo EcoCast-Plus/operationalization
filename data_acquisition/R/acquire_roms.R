@@ -13,14 +13,14 @@ source("data_acquisition/R/acquire_utils.R")
 
 
 # Load metadata
-meta <- read_csv("docs/model_metadata.csv")
+meta <- read_csv("metadata/model_metadata.csv")
 
 # Define output directories
 ncdir_roms = "data_acquisition/netcdfs/roms_ncdfs"
 
 # Define current date
-# get_date <- Sys.Date() - 7
-get_date <- as_date("2024-11-29")
+get_date <- Sys.Date() - 1
+# get_date <- as_date("2024-11-29")
 
 # Define dates of interest (related to 4-day lag from ROMS server)
 dates <- get_date - 0:5
