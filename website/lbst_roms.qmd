@@ -5,7 +5,8 @@ editor:
   markdown: 
     wrap: 72
 execute:
-  echo: false    
+  echo: false
+  freeze: true 
 ---
 
 The most recent map products from the model are shown below, in addition
@@ -221,3 +222,200 @@ navset_card_tab(
 )
 ```
 :::
+
+
+
+## Download Map Products and Raster Layers
+
+### From website
+<div>
+  <label for="start-date">Start Date:</label>
+  <input type="date" id="start-date" name="start-date" min="2024-11-08">
+  
+  <label for="end-date">End Date:</label>
+  <input type="date" id="end-date" name="end-date" min="2024-11-08">
+
+  <button onclick="filterAndDownload('png')" style="background-color: #002364; color: white">Download products</button>
+  <button onclick="filterAndDownload('tiff')" style="background-color: #002364; color: white">Download rasters</button>
+</div>
+
+```{r}
+# shiny::actionButton("prod_button", label = "Download products", onclick="filterAndDownload('png')")
+# shiny::actionButton("rast_button", label = "Download rasters", onclick="filterAndDownload('tiff')")
+```
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const today = new Date().toISOString().split("T")[0]; // Format: 'YYYY-MM-DD'
+  document.getElementById("start-date").max = today;
+  document.getElementById("end-date").max = today;
+});
+</script>
+
+
+<div id="file-list" style="margin-top: 20px;"></div>
+
+
+<!-- Spinner -->
+<div id="spinner" style="display:none; margin-top:10px;">
+  <div class="loader"></div>
+  <p>Downloading files...</p>
+</div>
+
+<!-- JSZip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Spinner CSS -->
+<style>
+.loader {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: 10px auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+#spinner p {
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+}
+</style>
+
+
+
+<script>
+function extractDate(filename) {
+  const match = filename.match(/(\d{4}-\d{2}-\d{2})/);
+  return match ? new Date(match[1]) : null;
+}
+
+async function filterAndDownload(extension) {
+  const startInput = document.getElementById('start-date');
+  const endInput = document.getElementById('end-date');
+  const startDate = new Date(startInput.value);
+  const endDate = new Date(endInput.value);
+  const listDiv = document.getElementById("file-list");
+  const spinner = document.getElementById("spinner");
+
+  if (isNaN(startDate) || isNaN(endDate)) {
+    alert("Please select valid start and end dates.");
+    return;
+  }
+
+  spinner.style.display = "block";
+  listDiv.innerHTML = "";
+
+  const folder = extension === "tiff"
+    ? "model_prediction/ROMS/rasters"
+    : "model_prediction/ROMS/img";
+
+  const apiURL = `https://api.github.com/repos/joshcullen/CEG_operationalization/contents/${folder}`;
+
+  try {
+    const response = await fetch(apiURL);
+    if (!response.ok) {
+      throw new Error("Failed to fetch file list.");
+    }
+
+    const allFiles = await response.json();
+    const matchingFiles = allFiles.filter(f =>
+      f.name.toLowerCase().endsWith(`.${extension}`)
+    );
+
+    const filteredFiles = matchingFiles.filter(file => {
+      const fileDate = extractDate(file.name);
+      return fileDate && fileDate >= startDate && fileDate <= endDate;
+    });
+
+    if (filteredFiles.length === 0) {
+      listDiv.innerHTML = `<p>No matching .${extension} files found in date range.</p>`;
+      spinner.style.display = "none";
+      return;
+    }
+
+    const zip = new JSZip();
+
+    for (const file of filteredFiles) {
+      const res = await fetch(file.download_url);
+      const blob = await res.blob();
+      const buffer = await blob.arrayBuffer();
+      zip.file(file.name, buffer);
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(content);
+    a.download = `Leatherback_ROMS_${extension.toUpperCase()}.zip`;
+    a.click();
+
+    listDiv.innerHTML = `<p>✅ File download complete.</p>`;
+  } catch (error) {
+    console.error(error);
+    listDiv.innerHTML = `<p>❌ Error occurred: ${error.message}</p>`;
+  } finally {
+    spinner.style.display = "none";
+  }
+}
+
+// Limit inputs to today
+document.addEventListener("DOMContentLoaded", () => {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("start-date").max = today;
+  document.getElementById("end-date").max = today;
+});
+</script>
+
+
+### From GitHub
+
+Clone the repository: <https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository>
+
+
+### From R
+
+```{r}
+#| echo: true
+#| eval: false
+
+library(curl)
+library(httr)
+library(tidyverse)
+library(glue)
+
+download_rasters_git = function(save_dir, start_date, end_date){
+  
+  # Find files from repo folder
+  prods <- httr::GET("https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/ROMS/rasters")
+  httr::stop_for_status(prods)  #check to make sure no errors w/ request (should return nothing to console if working properly)
+  filelist <- unlist(lapply(content(prods), "[", "name"), use.names = F)
+  prod_df <- data.frame(files = filelist,
+                        date = gsub("^[A-Za-z]+\\_|\\.tiff$", "", filelist) |> 
+                          as.Date()
+  )
+  
+  # Filter files by date range
+  prod_filt <- prod_df |> 
+    filter(date >= as.Date(start_date),
+           date <= as.Date(end_date)) |> 
+    pull(files)
+  
+  git_url <- glue("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/ROMS/rasters/{prod_filt}")
+  file_dest <- glue("{save_dir}/{prod_filt}")
+  
+  curl::multi_download(urls = git_url, destfiles = file_dest)
+}
+
+# Download files
+download_rasters_git(save_dir = "~/Downloads", start_date = "2025-06-25", end_date = "2025-06-30")
+
+```
+
+
