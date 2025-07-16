@@ -6,7 +6,6 @@ editor:
     wrap: 72
 execute:
   echo: false
-  freeze: true 
 ---
 
 The most recent map products from the model are shown below, in addition
