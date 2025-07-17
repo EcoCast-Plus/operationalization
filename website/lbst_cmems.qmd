@@ -264,6 +264,8 @@ navset_card_tab(
   
   <label for="end-date">End Date:</label>
   <input type="date" id="end-date" name="end-date" min="2024-11-08">
+  
+  <span id="start-date-range" style="font-size: 0.9em; color: #555; margin-left: 5px;"></span>
 
   <button onclick="filterAndDownload('png')" style="background-color: #002364; color: white">Download products</button>
   <button onclick="filterAndDownload('tiff')" style="background-color: #002364; color: white">Download rasters</button>
@@ -276,10 +278,41 @@ navset_card_tab(
 
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const today = new Date().toISOString().split("T")[0]; // Format: 'YYYY-MM-DD'
-  document.getElementById("start-date").max = today;
-  document.getElementById("end-date").max = today;
+async function fetchLatestDateFromGitHub() {
+  const url = 'https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/img';
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch filenames');
+  const files = await response.json();
+
+  const datePattern = /\d{4}-\d{2}-\d{2}/;
+  let dates = files
+    .map(file => file.name.match(datePattern))
+    .filter(match => match)
+    .map(match => match[0]);
+
+  if (dates.length === 0) throw new Error("No valid dates found in filenames.");
+
+  dates.sort(); // Ascending
+  return {
+    minDate: '2024-11-08', // Fixed known earliest date
+    maxDate: dates[dates.length - 1]
+  };
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const { minDate, maxDate } = await fetchLatestDateFromGitHub();
+
+    document.getElementById("start-date").min = minDate;
+    document.getElementById("end-date").min = minDate;
+    document.getElementById("start-date").max = maxDate;
+    document.getElementById("end-date").max = maxDate;
+
+    document.getElementById("start-date-range").textContent = `(Available: ${minDate} to ${maxDate})`;
+    
+  } catch (error) {
+    console.error("Date range setup failed:", error);
+  }
 });
 </script>
 
@@ -406,7 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ### From GitHub
 
-Clone the repository: <https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository>
+[Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) the repository: <https://github.com/joshcullen/CEG_operationalization>
 
 
 ### From R
@@ -420,10 +453,14 @@ library(httr)
 library(tidyverse)
 library(glue)
 
-download_rasters_git = function(save_dir, start_date, end_date){
+download_files_git = function(save_dir, file_type, start_date, end_date){
+  
+  folder <- switch(file_type,
+                   "raster" = "rasters",
+                   "image" = "img")
   
   # Find files from repo folder
-  prods <- httr::GET("https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/rasters")
+  prods <- httr::GET(glue("https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/{folder}"))
   httr::stop_for_status(prods)  #check to make sure no errors w/ request (should return nothing to console if working properly)
   filelist <- unlist(lapply(content(prods), "[", "name"), use.names = F)
   prod_df <- data.frame(files = filelist,
@@ -437,14 +474,21 @@ download_rasters_git = function(save_dir, start_date, end_date){
            date <= as.Date(end_date)) |> 
     pull(files)
   
-  git_url <- glue("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/TopPredatorWatch/rasters/{prod_filt}")
+  git_url <- glue("https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/TopPredatorWatch/{folder}/{prod_filt}")
   file_dest <- glue("{save_dir}/{prod_filt}")
   
   curl::multi_download(urls = git_url, destfiles = file_dest)
 }
 
 # Download files
-download_rasters_git(save_dir = "~/Downloads", start_date = "2025-06-25", end_date = "2025-06-30")
+download_files_git(save_dir = "~/Downloads",
+                   file_type = "raster",
+                   start_date = "2025-06-25",
+                   end_date = "2025-06-30")
+download_files_git(save_dir = "~/Downloads",
+                   file_type = "image",
+                   start_date = "2025-06-25",
+                   end_date = "2025-06-30")
 
 ```
 
