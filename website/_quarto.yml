@@ -52,6 +52,7 @@ format:
     link-external-newwindow: true
     fig-align: center
     brand: _brand.yml
+    css: styles.css
 
 execute: 
   warning: false
