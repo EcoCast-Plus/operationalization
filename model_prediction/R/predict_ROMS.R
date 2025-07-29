@@ -24,8 +24,8 @@ pred_rast_dir_ROMS <- glue("{pred_dir_ROMS}/rasters")  #dir of prediction as ras
 pred_img_dir_ROMS <- glue("{pred_dir_ROMS}/img")  #dir of prediction as image
 
 # Define current date
-# get_date <- Sys.Date() - 7
-get_date <- as_date("2024-11-29")
+get_date <- Sys.Date() - 1
+# get_date <- as_date("2024-11-29")
 
 # Define dates of interest (related to 4-day lag from ROMS server)
 dates <- get_date - 0:5
