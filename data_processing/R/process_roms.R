@@ -13,7 +13,7 @@ source("data_processing/R/process_utils.R")
 
 
 # Load metadata
-meta <- read_csv("docs/model_metadata.csv")
+meta <- read_csv("metadata/model_metadata.csv")
 
 # Define paths
 ncdir_roms <- "data_acquisition/netcdfs/roms_ncdfs"
