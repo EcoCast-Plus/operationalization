@@ -80,6 +80,7 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
+        git fetch origin main --depth=1
         git add .
         git commit -m 'Added new CMEMS file'
         git push
