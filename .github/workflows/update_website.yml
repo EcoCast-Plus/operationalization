@@ -30,10 +30,10 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v4
       with:
+        fetch-depth: 2 # fetch latest 2 commits/branches
         sparse-checkout: |
           metadata/
           website/
-          origin/gh-pages
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install Conda
