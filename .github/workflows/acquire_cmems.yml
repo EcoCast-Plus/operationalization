@@ -23,6 +23,12 @@ jobs:
       uses: actions/checkout@v4
       # with:
       #   fetch-depth: 0 # fetch all commits/branches
+      with:
+        sparse-checkout: |
+          metadata/
+          data_acquisition/R/
+          data_acquisition/netcdfs/cmems_ncdfs/
+        sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v3
