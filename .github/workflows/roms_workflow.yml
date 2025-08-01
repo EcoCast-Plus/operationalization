@@ -50,7 +50,7 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git git pull
+        git pull
         git add .
         git commit -m 'Added new ROMS files'
         git push
@@ -93,7 +93,7 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git git pull
+        git pull
         git add .
         git commit -m 'Processed ROMS files'
         git push
@@ -142,7 +142,7 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git git pull
+        git pull
         git add .
         git commit -m 'Made predictions for ROMS tool'
         git push
