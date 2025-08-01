@@ -68,6 +68,8 @@ if (status == FALSE) {
 ```{r}
 library(bslib)
 library(htmltools)
+library(httr)
+library(glue)
 
 bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
   lapply(function(x) {
