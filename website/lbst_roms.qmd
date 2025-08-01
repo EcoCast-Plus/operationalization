@@ -61,7 +61,7 @@ if (status == FALSE) {
 
 [ROMS THREDDS server](https://oceanmodeling.ucsc.edu/thredds/dodsC/ccsra_2016a_phys_agg_zlevs/fmrc/CCSRA_2016a_Phys_ROMS_z-level_(depth)_Aggregation_best.ncd.html)
 
-[*`r if (status == FALSE) paste("ROMS has been down for", days_down, "days")`*]{style="color: red;"}
+[`r if (status == FALSE) paste("ROMS has been down for", days_down, "days")`]{style="color: red; font-style: italic;"}
 
 ## Latest Map Products
 
