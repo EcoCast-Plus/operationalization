@@ -37,7 +37,8 @@ get_date <- Sys.Date() - 1
 
 # CMEMS status check
 status <- sapply(meta_df$product,
-                 \(x) check_cmems(path_copernicus_marine_toolbox = "/usr/share/miniconda/envs/test/bin/copernicusmarine",
+                 \(x) check_cmems(path_copernicus_marine_toolbox = "C:\Miniconda\envs\test\copernicusmarine",
+                                # \(x) check_cmems(path_copernicus_marine_toolbox = "/usr/share/miniconda/envs/test/bin/copernicusmarine",
                  # \(x) check_cmems(path_copernicus_marine_toolbox = "copernicusmarine",
                                                    productID = x, get_date = get_date))
 
