@@ -146,6 +146,7 @@ jobs:
     - name: Install rnaturalearthhires R package from GitHub
       shell: Rscript {0}
       run: |
+        install.packages("remotes")
         remotes::install_github("ropensci/rnaturalearthhires")
 
     - name: Make predictions for Top Predator Watch
