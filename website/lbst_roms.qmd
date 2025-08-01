@@ -79,11 +79,29 @@ bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
   htmltools::tagList()
 
 
+# Find latest products in GH repo
+prods <- GET("https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/ROMS/img")
+stop_for_status(prods)
+filelist <- unlist(lapply(content(prods), "[", "name"), use.names = F)
+prod_dates <- data.frame(idx = seq_along(filelist),
+                         date = gsub("^[A-Za-z]+\\_|\\.png$", "", filelist) |> 
+                           as.Date()
+                         )
+
+latest <- prod_dates |> 
+  arrange(desc(date))
+
+
 navset_card_tab(
-  nav_panel(title = "Latest", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/leatherbackTurtle_2024-11-24.png?raw=true", width = "50%")),
-  nav_panel(title = "Latest - 1", img(src = "https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/leatherbackTurtle_2024-11-08.png?raw=true", width = "50%")),
-  nav_panel(title = "Latest - 2", p("Add content"))
-)
+  nav_panel(title = "Latest",
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/{filelist[latest$idx[1]]}?raw=true", width = "100%"))),
+  nav_panel(title = "Latest - 1",
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/{filelist[latest$idx[2]]}?raw=true", width = "100%"))),
+  nav_panel(title = "Latest - 2",
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/{filelist[latest$idx[3]]}?raw=true", width = "100%"))),
+  nav_panel(title = "Latest - 3",
+            img(src = glue("https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/ROMS/img/{filelist[latest$idx[4]]}?raw=true", width = "100%")))
+  )
 ```
 
 ## Interactive Map
