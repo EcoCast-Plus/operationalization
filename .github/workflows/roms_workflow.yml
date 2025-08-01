@@ -1,5 +1,5 @@
 
-name: CMEMS model workflow
+name: ROMS model workflow
 
 on:
   # triggered on push to repo
@@ -14,33 +14,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  download_cmems:
-    runs-on: ubuntu-latest
+  acquire_roms:
+    runs-on: windows-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-      # with:
-      #   fetch-depth: 0 # fetch all commits/branches
       with:
         sparse-checkout: |
           metadata/
           data_acquisition/R/
-          data_acquisition/netcdfs/cmems_ncdfs/
+          data_acquisition/netcdfs/roms_ncdfs/
         sparse-checkout-cone-mode: false # Set to false for more granular control
-
-    - name: Install Conda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        python-version: 3.11
-
-    - name: Install Copernicus Marine Toolbox
-      shell: bash -el {0}
-      run: |
-        conda install -c conda-forge copernicusmarine
-        conda install scipy
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
@@ -52,13 +38,10 @@ jobs:
       with:
         cache-version: 4
 
-    - name: Download CMEMS data
-      env:
-        COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
-        COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+    - name: Download ROMS data
       shell: Rscript {0}
       run: |
-        source("data_acquisition/R/acquire_cmems.R")
+        source("data_acquisition/R/acquire_roms.R")
       working-directory: ${{ github.workspace }}
 
     - name: Commit and Push Changes
@@ -67,15 +50,14 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git pull
+        git git pull
         git add .
-        git commit -m 'Added new CMEMS files'
+        git commit -m 'Added new ROMS files'
         git push
 
-  process_cmems:
+  process_roms:
     runs-on: ubuntu-latest
-    needs: download_cmems
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: acquire_roms
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -85,8 +67,8 @@ jobs:
         sparse-checkout: |
           metadata/
           data_processing/R/
-          data_acquisition/netcdfs/cmems_ncdfs/
-          data_processing/TopPredatorWatch/
+          data_acquisition/netcdfs/roms_ncdfs/
+          data_processing/ROMS/
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install R
@@ -99,10 +81,10 @@ jobs:
       with:
         cache-version: 4
 
-    - name: Process CMEMS netCDFs and created derived vars
+    - name: Process ROMS netCDFs and created derived vars
       shell: Rscript {0}
       run: |
-        source("data_processing/R/process_cmems.R")
+        source("data_processing/R/process_roms.R")
       working-directory: ${{ github.workspace }}
 
     - name: Commit and Push Changes
@@ -111,15 +93,14 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git pull
+        git git pull
         git add .
-        git commit -m 'Processed CMEMS files'
+        git commit -m 'Processed ROMS files'
         git push
         
-  predict_TopPred:
+  predict_ROMS:
     runs-on: ubuntu-latest
-    needs: process_cmems
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: process_roms
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -129,8 +110,8 @@ jobs:
         sparse-checkout: |
           metadata/
           model_prediction/R/
-          data_processing/TopPredatorWatch/rasters/
-          model_prediction/TopPredatorWatch/
+          data_processing/ROMS/rasters/
+          model_prediction/ROMS/
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install R
@@ -149,10 +130,10 @@ jobs:
         install.packages("remotes")
         remotes::install_github("ropensci/rnaturalearthhires")
 
-    - name: Make predictions for Top Predator Watch
+    - name: Make predictions for ROMS tool
       shell: Rscript {0}
       run: |
-        source("model_prediction/R/predict_TopPredatorWatch.R")
+        source("model_prediction/R/predict_ROMS.R")
       working-directory: ${{ github.workspace }}
 
     - name: Commit and Push Changes
@@ -161,14 +142,14 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git fetch origin gh-pages --depth=1
-        git pull
+        git git pull
         git add .
-        git commit -m 'Made predictions for Top Predator Watch'
+        git commit -m 'Made predictions for ROMS tool'
         git push
         
   update_website:
     runs-on: windows-latest
-    needs: predict_TopPred
+    needs: predict_ROMS
     permissions:
       contents: write
     env:
@@ -176,11 +157,6 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-      # with:
-      #   sparse-checkout: |
-      #     metadata/
-      #     website/
-      #   sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v3
