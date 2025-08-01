@@ -33,6 +33,7 @@ jobs:
         sparse-checkout: |
           metadata/
           website/
+          origin/gh-pages
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install Conda
