@@ -27,6 +27,15 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          metadata/
+          model_prediction/R/
+          data_processing/TopPredatorWatch/rasters/
+          model_prediction/TopPredatorWatch/img/
+          model_prediction/TopPredatorWatch/rasters/
+          model_prediction/TopPredatorWatch/static/
+        sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
