@@ -112,7 +112,7 @@ jobs:
           model_prediction/R/
           data_processing/ROMS/rasters/
           model_prediction/ROMS/
-        sparse-checkout-cone-mode: false # Set to false for more granular control
+        sparse-checkout-cone-mode: true  # Set to false for more granular control
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
@@ -149,7 +149,7 @@ jobs:
         
   update_website:
     runs-on: windows-latest
-    needs: predict_ROMS
+    # needs: predict_ROMS
     permissions:
       contents: write
     env:
