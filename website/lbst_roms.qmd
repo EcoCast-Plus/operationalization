@@ -70,6 +70,7 @@ library(bslib)
 library(htmltools)
 library(httr)
 library(glue)
+library(dplyr)
 
 bs_theme_dependencies(bs_theme(preset = "bootstrap")) |>
   lapply(function(x) {
