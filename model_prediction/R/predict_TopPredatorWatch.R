@@ -52,6 +52,11 @@ savename_TopPred <- str_remove(list.files(path = glue("{pred_dir_TopPred}/static
                                           pattern = "leatherbackTurtle_TOPP.fgb"),
                                "_TOPP.fgb|_Dallas.fgb")
 
+#Print objects for pred function
+print(mod.list_TopPred)
+print(bbox.list_TopPred)
+print(savename_TopPred)
+
 
 # Make prediction
 purrr::pwalk(list(mod.list_TopPred,
