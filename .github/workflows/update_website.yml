@@ -29,11 +29,11 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-      with:
-        sparse-checkout: |
-          metadata/
-          website/
-        sparse-checkout-cone-mode: true  # Set to false for more granular control
+      # with:
+      #   sparse-checkout: |
+      #     metadata/
+      #     website/
+      #   sparse-checkout-cone-mode: true  # Set to false for more granular control
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v3
