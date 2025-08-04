@@ -132,6 +132,10 @@ jobs:
           data_processing/TopPredatorWatch/rasters/
           model_prediction/TopPredatorWatch/
         sparse-checkout-cone-mode: true  # Set to false for more granular control
+    
+    - name: List all files in directory
+      run: |
+        tree
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2

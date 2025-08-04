@@ -53,6 +53,13 @@ savename_TopPred <- str_remove(list.files(path = glue("{pred_dir_TopPred}/static
                                "_TOPP.fgb|_Dallas.fgb")
 
 
+# Print R objects
+print(mod.list_TopPred)
+print(bbox.list_TopPred)
+print(savename_TopPred)
+print(get_date)
+
+
 # Make prediction
 purrr::pwalk(list(mod.list_TopPred,
                   bbox.list_TopPred,
