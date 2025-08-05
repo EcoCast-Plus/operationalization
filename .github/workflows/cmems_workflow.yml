@@ -126,13 +126,19 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 2  #fetch past 2 commits
         sparse-checkout: |
           metadata/
           model_prediction/R/
           data_processing/TopPredatorWatch/rasters/
           model_prediction/TopPredatorWatch/
         sparse-checkout-cone-mode: true  # Set to false for more granular control
+    
+    - name: Pull in Latest Changes
+      run: |
+        git config --global user.name "${{ github.actor }}"
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+        git pull
     
     - name: List all files in directory
       run: |
