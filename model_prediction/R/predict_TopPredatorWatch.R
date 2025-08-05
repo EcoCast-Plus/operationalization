@@ -54,10 +54,10 @@ savename_TopPred <- str_remove(list.files(path = glue("{pred_dir_TopPred}/static
 
 
 # Print R objects
-print(mod.list_TopPred)
-print(bbox.list_TopPred)
-print(savename_TopPred)
-print(get_date)
+# print(mod.list_TopPred)
+# print(bbox.list_TopPred)
+# print(savename_TopPred)
+# print(get_date)
 
 
 # Make prediction

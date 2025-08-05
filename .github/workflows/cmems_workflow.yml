@@ -140,9 +140,9 @@ jobs:
 
         git pull
     
-    - name: List all files in directory
-      run: |
-        tree
+    # - name: List all files in directory
+    #   run: |
+    #     tree
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
