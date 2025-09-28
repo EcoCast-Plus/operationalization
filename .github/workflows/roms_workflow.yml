@@ -29,7 +29,7 @@ jobs:
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
     - name: Check disk space
-      run: fsutil volume diskfree c:
+      run: DiskUsage C:\ /h
 
   #   - name: Install R
   #     uses: r-lib/actions/setup-r@v2
