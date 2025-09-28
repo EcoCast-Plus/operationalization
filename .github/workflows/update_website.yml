@@ -42,7 +42,7 @@ jobs:
         python-version: 3.11
 
     - name: Check disk space
-      run: wmic logicaldisk list brief
+      run: fsutil volume diskfree c:
 
     # - name: Install Copernicus Marine Toolbox
     #   shell: bash -el {0}
