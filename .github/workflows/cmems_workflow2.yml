@@ -101,19 +101,17 @@ jobs:
           TREE_INPUT=""
           # 3. Loop through all files in the source directory
           # The `find` command locates every file and pipes the list to the `while` loop.
-          find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
+          # ✅ **FIX:** Capture the entire output of the loop into the TREE_INPUT variable.
+          # This avoids the subshell issue.
+          TREE_INPUT=$(find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
             echo "Processing file: ${filepath}"
-            
-            # Create a blob object for the current file
+
             BLOB_HASH=$(git hash-object -w "${filepath}")
-            
-            # Get just the filename from the full path
             FILENAME=$(basename "${filepath}")
             
-            # Construct a line for the `mktree` input and append it to our variable.
-            # The `\n` creates the newline needed to separate entries.
-            TREE_INPUT="${TREE_INPUT}100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}\n"
-          done
+            # Instead of appending, we now ECHO the line to be captured by the variable.
+            echo "100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}"
+          done)
           echo -e "--- Final Tree Input ---\n${TREE_INPUT}"
           
           if [ -z "${TREE_INPUT}" ]; then
