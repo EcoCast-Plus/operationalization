@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    concurrency:
+      group: ${{ github.workflow }}-data-push
+      cancel-in-progress: true
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
@@ -81,40 +84,58 @@ jobs:
         SOURCE_DIR="data_acquisition/netcdfs/cmems_ncdfs" # The directory with your .nc files
         TARGET_DIR="CMEMS" # The destination directory in the repo
         COMMIT_MESSAGE="Add data files for commit ${{ github.sha }}"
+        
         # --- Git Plumbing ---
-        # 1. Get the latest commit hash (our parent)
-        PARENT_COMMIT=$(git ls-remote https://github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "refs/heads/${TARGET_BRANCH}" | cut -f 1)
-        echo "Parent commit is ${PARENT_COMMIT}"
-        # 2. Initialize an empty variable to build the tree input
-        TREE_INPUT=""
-        # 3. Loop through all files in the source directory
-        # The `find` command locates every file and pipes the list to the `while` loop.
-        find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
-          echo "Processing file: ${filepath}"
+        # Add a retry loop to handle race conditions
+        for i in 1 2 3; do
+          # 1. Get the latest commit hash (our parent)
+          PARENT_COMMIT=$(git ls-remote https://github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "refs/heads/${TARGET_BRANCH}" | cut -f 1)
+          echo "Attempt $i: Parent commit is ${PARENT_COMMIT}"
+          # 2. Initialize an empty variable to build the tree input
+          TREE_INPUT=""
+          # 3. Loop through all files in the source directory
+          # The `find` command locates every file and pipes the list to the `while` loop.
+          find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
+            echo "Processing file: ${filepath}"
+            
+            # Create a blob object for the current file
+            BLOB_HASH=$(git hash-object -w "${filepath}")
+            
+            # Get just the filename from the full path
+            FILENAME=$(basename "${filepath}")
+            
+            # Construct a line for the `mktree` input and append it to our variable.
+            # The `\n` creates the newline needed to separate entries.
+            TREE_INPUT="${TREE_INPUT}100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}\n"
+          done
+          echo -e "--- Final Tree Input ---\n${TREE_INPUT}"
           
-          # Create a blob object for the current file
-          BLOB_HASH=$(git hash-object -w "${filepath}")
+          if [ -z "${TREE_INPUT}" ]; then
+            echo "No files to commit."
+            break
+          fi
+
+          # 4. Create the Git 'tree' object from the programmatically built input
+          # `echo -e` enables interpretation of backslash escapes (like \n).
+          #    ✅ **FIX:** Pipe the input through `sed` to remove the final blank line before git sees it.
+          TREE_HASH=$(echo -e "${TREE_INPUT}" | sed '/^$/d' | git mktree)
+          echo "Tree hash is ${TREE_HASH}"
           
-          # Get just the filename from the full path
-          FILENAME=$(basename "${filepath}")
+          # 5. Create the 'commit' object (unchanged)
+          COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${TREE_HASH}" -p "${PARENT_COMMIT}")
+          echo "Commit hash is ${COMMIT_HASH}"
           
-          # Construct a line for the `mktree` input and append it to our variable.
-          # The `\n` creates the newline needed to separate entries.
-          TREE_INPUT="${TREE_INPUT}100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}\n"
+          # 6. Push the new commit to the target repository (unchanged)
+          if git push ***github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "${COMMIT_HASH}:refs/heads/${TARGET_BRANCH}"; then
+            echo "✅ Successfully pushed on attempt $i"
+            break # Exit loop on success
+          else
+            echo "Push failed on attempt $i. Retrying in 10 seconds..."
+            sleep 10
+          fi
+          
+          if [ $i = 3 ]; then
+            echo "❌ All push attempts failed."
+            exit 1
+          fi
         done
-        echo -e "--- Final Tree Input ---\n${TREE_INPUT}"
-
-        # 4. Create the Git 'tree' object from the programmatically built input
-        # `echo -e` enables interpretation of backslash escapes (like \n).
-        #    ✅ **FIX:** Pipe the input through `sed` to remove the final blank line before git sees it.
-        TREE_HASH=$(echo -e "${TREE_INPUT}" | sed '/^$/d' | git mktree)
-        echo "Tree hash is ${TREE_HASH}"
-        
-        # 5. Create the 'commit' object (unchanged)
-        COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${TREE_HASH}" -p "${PARENT_COMMIT}")
-        echo "Commit hash is ${COMMIT_HASH}"
-        
-        # 6. Push the new commit to the target repository (unchanged)
-        git push https://x-access-token:${{ secrets.CEG_TARGET_PAT }}@github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "${COMMIT_HASH}:refs/heads/${TARGET_BRANCH}"
-
-        echo "✅ Successfully pushed commit with dynamic files to ${TARGET_REPO_NAME}"
