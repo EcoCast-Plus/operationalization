@@ -79,7 +79,7 @@ jobs:
         TARGET_REPO_NAME="CEG_operationalization_data"
         TARGET_BRANCH="main"
         SOURCE_DIR="data_acquisition/netcdfs/cmems_ncdfs" # The directory with your .nc files
-        TARGET_DIR="CMEMS/${{ github.sha }}" # The destination directory in the repo
+        TARGET_DIR="CMEMS" # The destination directory in the repo
         COMMIT_MESSAGE="Add data files for commit ${{ github.sha }}"
         # --- Git Plumbing ---
         # 1. Get the latest commit hash (our parent)
