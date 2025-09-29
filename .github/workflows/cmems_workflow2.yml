@@ -70,6 +70,12 @@ jobs:
       run: |
         source("data_acquisition/R/acquire_cmems.R")
       working-directory: ${{ github.workspace }}
+    
+    # ✅ ADD THIS NEW DEBUGGING STEP
+    - name: 🐛 List files in the workspace
+      run: |
+        echo "Listing all files and directories from the root..."
+        ls -R
 
     - name: 🚀 Push all .nc files to data repository
       run: |
