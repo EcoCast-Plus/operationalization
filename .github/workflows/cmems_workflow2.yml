@@ -91,8 +91,10 @@ jobs:
         # The `find` command locates every file and pipes the list to the `while` loop.
         find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
           echo "Processing file: ${filepath}"
+          
           # Create a blob object for the current file
           BLOB_HASH=$(git hash-object -w "${filepath}")
+          
           # Get just the filename from the full path
           FILENAME=$(basename "${filepath}")
           
@@ -104,11 +106,14 @@ jobs:
 
         # 4. Create the Git 'tree' object from the programmatically built input
         # `echo -e` enables interpretation of backslash escapes (like \n).
-        TREE_HASH=$(echo -e "${TREE_INPUT}" | git mktree)
+        #    ✅ **FIX:** Pipe the input through `sed` to remove the final blank line before git sees it.
+        TREE_HASH=$(echo -e "${TREE_INPUT}" | sed '/^$/d' | git mktree)
         echo "Tree hash is ${TREE_HASH}"
+        
         # 5. Create the 'commit' object (unchanged)
         COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${TREE_HASH}" -p "${PARENT_COMMIT}")
         echo "Commit hash is ${COMMIT_HASH}"
+        
         # 6. Push the new commit to the target repository (unchanged)
         git push https://x-access-token:${{ secrets.CEG_TARGET_PAT }}@github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "${COMMIT_HASH}:refs/heads/${TARGET_BRANCH}"
 
