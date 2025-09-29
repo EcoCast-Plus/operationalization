@@ -1,0 +1,115 @@
+name: CMEMS model workflow2
+
+on:
+  # triggered on push to repo
+  # push:
+  #   branches: main
+  # triggered by cron job
+  # schedule:
+    # * is a special character in YAML so you have to quote this string
+    # https://crontab.cronhub.io
+    # - cron:  '30 15 * * *'  #scheduled to run at 3:30 pm UTC every day
+  # triggered by manual activation on GitHub repo website
+  workflow_dispatch:
+
+jobs:
+  download_cmems:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+      # with:
+      #   fetch-depth: 0 # fetch all commits/branches
+      with:
+        sparse-checkout: |
+          metadata/
+          data_acquisition/R/
+          # data_acquisition/netcdfs/cmems_ncdfs/
+        sparse-checkout-cone-mode: false # Set to false for more granular control
+    
+    - name: Create empty dir for NCDF files
+      run: mkdir -p data_acquisition/netcdfs/cmems_ncdfs
+
+    - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: 3.11
+
+    # - name: Check disk space
+    #   run: |
+    #     df -h
+    #     du -sh ~/
+
+    - name: Install Copernicus Marine Toolbox
+      shell: bash -el {0}
+      run: |
+        conda install -c conda-forge copernicusmarine
+        conda install scipy
+
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+
+    - name: Install R packages
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache-version: 4
+
+    - name: Download CMEMS data
+      env:
+        COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+        COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+      shell: Rscript {0}
+      run: |
+        source("data_acquisition/R/acquire_cmems.R")
+      working-directory: ${{ github.workspace }}
+
+    - name: 🚀 Push all .nc files to data repository
+      run: |
+        # --- Basic Git Setup ---
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions-bot@github.com"
+        
+        # --- Configuration ---
+        TARGET_ORG="joshcullen"
+        TARGET_REPO_NAME="CEG_operationalization_data"
+        TARGET_BRANCH="main"
+        SOURCE_DIR="data_acquisition/netcdfs/cmems_ncdfs" # The directory with your .nc files
+        TARGET_DIR="CMEMS/${{ github.sha }}" # The destination directory in the repo
+        COMMIT_MESSAGE="Add data files for commit ${{ github.sha }}"
+        # --- Git Plumbing ---
+        # 1. Get the latest commit hash (our parent)
+        PARENT_COMMIT=$(git ls-remote https://github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "refs/heads/${TARGET_BRANCH}" | cut -f 1)
+        echo "Parent commit is ${PARENT_COMMIT}"
+        # 2. Initialize an empty variable to build the tree input
+        TREE_INPUT=""
+        # 3. Loop through all files in the source directory
+        # The `find` command locates every file and pipes the list to the `while` loop.
+        find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
+          echo "Processing file: ${filepath}"
+          # Create a blob object for the current file
+          BLOB_HASH=$(git hash-object -w "${filepath}")
+          # Get just the filename from the full path
+          FILENAME=$(basename "${filepath}")
+          
+          # Construct a line for the `mktree` input and append it to our variable.
+          # The `\n` creates the newline needed to separate entries.
+          TREE_INPUT="${TREE_INPUT}100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}\n"
+        done
+        echo -e "--- Final Tree Input ---\n${TREE_INPUT}"
+
+        # 4. Create the Git 'tree' object from the programmatically built input
+        # `echo -e` enables interpretation of backslash escapes (like \n).
+        TREE_HASH=$(echo -e "${TREE_INPUT}" | git mktree)
+        echo "Tree hash is ${TREE_HASH}"
+        # 5. Create the 'commit' object (unchanged)
+        COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${TREE_HASH}" -p "${PARENT_COMMIT}")
+        echo "Commit hash is ${COMMIT_HASH}"
+        # 6. Push the new commit to the target repository (unchanged)
+        git push https://x-access-token:${{ secrets.CEG_TARGET_PAT }}@github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "${COMMIT_HASH}:refs/heads/${TARGET_BRANCH}"
+
+        echo "✅ Successfully pushed commit with dynamic files to ${TARGET_REPO_NAME}"
