@@ -103,30 +103,31 @@ jobs:
           # The `find` command locates every file and pipes the list to the `while` loop.
           # ✅ **FIX:** Capture the entire output of the loop into the TREE_INPUT variable.
           # This avoids the subshell issue.
-          TREE_INPUT=$(find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
+          # The loop creates the list of files that will go INSIDE the TARGET_DIR.
+          INNER_TREE_INPUT=$(find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
             echo "Processing file: ${filepath}" >&2
-
             BLOB_HASH=$(git hash-object -w "${filepath}")
             FILENAME=$(basename "${filepath}")
-            
-            # Instead of appending, we now ECHO the line to be captured by the variable.
-            echo "100644 blob ${BLOB_HASH}	${TARGET_DIR}/${FILENAME}"
+            # ✅ FIX: The path here is now JUST the filename, as required by mktree.
+            echo "100644 blob ${BLOB_HASH}	${FILENAME}"
           done)
-          echo -e "--- Final Tree Input ---\n${TREE_INPUT}"
-          
-          if [ -z "${TREE_INPUT}" ]; then
+          if [ -z "${INNER_TREE_INPUT}" ]; then
             echo "No files to commit."
             break
           fi
 
+          # Create the tree object for the contents of the CMEMS directory
+          INNER_TREE_HASH=$(echo -e "${INNER_TREE_INPUT}" | sed '/^$/d' | git mktree)
+          echo "Inner tree hash (for '${TARGET_DIR}' contents): ${INNER_TREE_HASH}"
+          
           # 4. Create the Git 'tree' object from the programmatically built input
-          # `echo -e` enables interpretation of backslash escapes (like \n).
-          #    ✅ **FIX:** Pipe the input through `sed` to remove the final blank line before git sees it.
-          TREE_HASH=$(echo -e "${TREE_INPUT}" | sed '/^$/d' | git mktree)
-          echo "Tree hash is ${TREE_HASH}"
+          # This tree contains a single entry for the TARGET_DIR subdirectory.
+          # Mode '040000' tells Git this is a directory (tree).
+          FINAL_TREE_HASH=$(echo "040000 tree ${INNER_TREE_HASH}	${TARGET_DIR}" | git mktree)
+          echo "Final tree hash (for root): ${FINAL_TREE_HASH}"
           
           # 5. Create the 'commit' object (unchanged)
-          COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${TREE_HASH}" -p "${PARENT_COMMIT}")
+          COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${FINAL_TREE_HASH}" -p "${PARENT_COMMIT}")
           echo "Commit hash is ${COMMIT_HASH}"
           
           # 6. Push the new commit to the target repository (unchanged)
