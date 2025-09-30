@@ -86,39 +86,34 @@ jobs:
         
         # --- 1. Programmatically Create a Blob for Each File & Build Tree JSON ---
         echo "STEP 1: Creating blobs and building tree..."
-        TREE_JSON_PAYLOAD="" # Initialize empty string for the tree's file list
         
-        # Use find and a while loop to process each file
-        find "$SOURCE_DIR" -type f -name "*.nc" | while read -r filepath; do
+        # This structure captures the final tree JSON from the loop, avoiding the subshell issue.
+        TREE_JSON_PAYLOAD=$(find "$SOURCE_DIR" -type f -name "*.nc" | while read -r filepath; do
           echo "Processing file: $filepath" >&2
-          
-          # Get the filename from the path
           filename=$(basename "$filepath")
           
-          # Create a blob for the current file
+          # ✅ FIX 1: Pipe the JSON payload into curl instead of passing as an argument.
+          # The `-d @-` tells curl to read from standard input.
           CONTENT_BASE64=$(base64 -w 0 "$filepath")
-          BLOB_JSON=$(printf '{"content":"%s", "encoding":"base64"}' "$CONTENT_BASE64")
+          BLOB_SHA=$(printf '{"content":"%s", "encoding":"base64"}' "$CONTENT_BASE64" | \
+            curl -s -L \
+              -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/blobs" \
+              -d @- | \
+            jq -r '.sha')
           
-          BLOB_SHA=$(curl -s -L \
-            -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/blobs" \
-            -d "$BLOB_JSON" | jq -r '.sha')
+          if [ "$BLOB_SHA" = "null" ] || [ -z "$BLOB_SHA" ]; then echo "Error: Failed to create blob for $filename"; exit 1; fi
+          echo "  - Blob created with SHA: $BLOB_SHA" >&2
           
-          if [ "$BLOB_SHA" = "null" ]; then echo "Error: Failed to create blob for $filename"; exit 1; fi
-          echo "  - Blob created with SHA: $BLOB_SHA"
-          
-          # Append the JSON for this file to our tree payload string
-          # We add a comma to separate entries, which we'll handle later.
-          TREE_JSON_PAYLOAD+=$(printf '{"path":"%s/%s","mode":"100644","type":"blob","sha":"%s"},' \
-            "$TARGET_DIR" "$filename" "$BLOB_SHA")
-        done
-        # Check if any files were processed
+          # ✅ FIX 2: Echo the JSON for this file so it can be captured by TREE_JSON_PAYLOAD
+          printf '{"path":"%s/%s","mode":"100644","type":"blob","sha":"%s"},' \
+            "$TARGET_DIR" "$filename" "$BLOB_SHA"
+        done)
         if [ -z "$TREE_JSON_PAYLOAD" ]; then
-          echo "No .nc files found to commit."
-          exit 0
+          echo "No files were processed successfully."
+          exit 1
         fi
         
-        # Remove the trailing comma from the last entry
         TREE_JSON_PAYLOAD="[${TREE_JSON_PAYLOAD%?}]"
         
         # --- 2. Get the Parent Commit SHA ---
@@ -134,31 +129,20 @@ jobs:
         echo "STEP 3: Creating tree..."
         FINAL_TREE_JSON=$(printf '{"base_tree":"%s","tree":%s}' "$PARENT_SHA" "$TREE_JSON_PAYLOAD")
         
-        TREE_SHA=$(curl -s -L \
+        TREE_SHA=$(echo "$FINAL_TREE_JSON" | curl -s -L \
           -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
           "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/trees" \
-          -d "$FINAL_TREE_JSON" | jq -r '.sha')
+          -d @- | jq -r '.sha')
         if [ "$TREE_SHA" = "null" ]; then echo "Error: Failed to create tree"; exit 1; fi
         echo "Tree created with SHA: $TREE_SHA"
         
-        # --- 4. Create a Commit ---
-        echo "STEP 4: Creating commit..."
-        COMMIT_JSON=$(printf '{"message":"%s","parents":["%s"],"tree":"%s"}' \
-          "$COMMIT_MESSAGE" "$PARENT_SHA" "$TREE_SHA")
-          
-        COMMIT_SHA=$(curl -s -L \
-          -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
-          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/commits" \
-          -d "$COMMIT_JSON" | jq -r '.sha')
+        # --- 4. Create a Commit & 5. Update the Branch Reference (Unchanged) ---
+        COMMIT_JSON=$(printf '{"message":"%s","parents":["%s"],"tree":"%s"}' "$COMMIT_MESSAGE" "$PARENT_SHA" "$TREE_SHA")
+        
+        COMMIT_SHA=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/commits" -d "$COMMIT_JSON" | jq -r '.sha')
         if [ "$COMMIT_SHA" = "null" ]; then echo "Error: Failed to create commit"; exit 1; fi
         echo "Commit created with SHA: $COMMIT_SHA"
-        
-        # --- 5. Update the Branch Reference ---
-        echo "STEP 5: Updating branch reference..."
         REF_JSON=$(printf '{"sha":"%s"}' "$COMMIT_SHA")
-        curl -s -L \
-          -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
-          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/refs/heads/${TARGET_BRANCH}" \
-          -d "$REF_JSON"
+        curl -s -L -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/refs/heads/${TARGET_BRANCH}" -d "$REF_JSON"
 
         echo "✅ Branch update complete!"
