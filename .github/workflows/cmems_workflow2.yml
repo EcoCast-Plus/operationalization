@@ -104,7 +104,7 @@ jobs:
           # ✅ **FIX:** Capture the entire output of the loop into the TREE_INPUT variable.
           # This avoids the subshell issue.
           TREE_INPUT=$(find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
-            echo "Processing file: ${filepath}"
+            echo "Processing file: ${filepath}" >&2
 
             BLOB_HASH=$(git hash-object -w "${filepath}")
             FILENAME=$(basename "${filepath}")
