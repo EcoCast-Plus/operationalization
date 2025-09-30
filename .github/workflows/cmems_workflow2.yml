@@ -72,9 +72,9 @@ jobs:
       working-directory: ${{ github.workspace }}
     
     - name: 🚀 Push multiple files via GitHub API
-      env:
+      # env:
         # Use your PAT secret here for authentication
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # --- Configuration ---
         TARGET_ORG="joshcullen"
@@ -95,6 +95,14 @@ jobs:
           # ✅ FIX 1: Pipe the JSON payload into curl instead of passing as an argument.
           # The `-d @-` tells curl to read from standard input.
           CONTENT_BASE64=$(base64 -w 0 "$filepath")
+          
+          # ✅ **FIX:** Capture the API response to a variable for better error logging
+          API_RESPONSE=$(printf '{"content":"%s", "encoding":"base64"}' "$CONTENT_BASE64" | \
+            curl -s -L \
+              -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/blobs" \
+              -d @-)
+              
           BLOB_SHA=$(printf '{"content":"%s", "encoding":"base64"}' "$CONTENT_BASE64" | \
             curl -s -L \
               -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
@@ -102,7 +110,11 @@ jobs:
               -d @- | \
             jq -r '.sha')
           
-          if [ "$BLOB_SHA" = "null" ] || [ -z "$BLOB_SHA" ]; then echo "Error: Failed to create blob for $filename"; exit 1; fi
+          if [ "$BLOB_SHA" = "null" ] || [ -z "$BLOB_SHA" ]; then
+            echo "Error: Failed to create blob for $filename."
+            echo "API Response: $API_RESPONSE" # Print the actual error from GitHub
+            exit 1
+          fi
           echo "  - Blob created with SHA: $BLOB_SHA" >&2
           
           # ✅ FIX 2: Echo the JSON for this file so it can be captured by TREE_JSON_PAYLOAD
