@@ -71,76 +71,94 @@ jobs:
         source("data_acquisition/R/acquire_cmems.R")
       working-directory: ${{ github.workspace }}
     
-    # ✅ ADD THIS NEW DEBUGGING STEP
-    - name: 🐛 List files in the workspace
+    - name: 🚀 Push multiple files via GitHub API
+      env:
+        # Use your PAT secret here for authentication
+        GH_TOKEN: ${{ secrets.CEG_TARGET_PAT }}
       run: |
-        echo "Listing all files and directories from the root..."
-        ls -R
-
-    - name: 🚀 Push all .nc files to data repository
-      run: |
-        # --- Basic Git Setup ---
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions-bot@github.com"
-        
         # --- Configuration ---
         TARGET_ORG="joshcullen"
-        TARGET_REPO_NAME="CEG_operationalization_data"
+        TARGET_REPO="CEG_operationalization_data"
         TARGET_BRANCH="main"
-        SOURCE_DIR="data_acquisition/netcdfs/cmems_ncdfs" # The directory with your .nc files
+        SOURCE_DIR="data_acquisition/netcdfs/cmems_ncdfs" # The local directory to scan
         TARGET_DIR="CMEMS" # The destination directory in the repo
-        COMMIT_MESSAGE="Add data files for commit ${{ github.sha }}"
+        COMMIT_MESSAGE="Added multiple CMEMS NCDF files via API for commit ${{ github.sha }}"
         
-        # --- Git Plumbing ---
-        # Add a retry loop to handle race conditions
-        for i in 1 2 3; do
-          # 1. Get the latest commit hash (our parent)
-          PARENT_COMMIT=$(git ls-remote https://github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "refs/heads/${TARGET_BRANCH}" | cut -f 1)
-          echo "Attempt $i: Parent commit is ${PARENT_COMMIT}"
-          # 2. Initialize an empty variable to build the tree input
-          TREE_INPUT=""
-          # 3. Loop through all files in the source directory
-          # The `find` command locates every file and pipes the list to the `while` loop.
-          # ✅ **FIX:** Capture the entire output of the loop into the TREE_INPUT variable.
-          # This avoids the subshell issue.
-          # The loop creates the list of files that will go INSIDE the TARGET_DIR.
-          INNER_TREE_INPUT=$(find "${SOURCE_DIR}" -type f -name "*.nc" | while read -r filepath; do
-            echo "Processing file: ${filepath}" >&2
-            BLOB_HASH=$(git hash-object -w "${filepath}")
-            FILENAME=$(basename "${filepath}")
-            # ✅ FIX: The path here is now JUST the filename, as required by mktree.
-            echo "100644 blob ${BLOB_HASH}	${FILENAME}"
-          done)
-          if [ -z "${INNER_TREE_INPUT}" ]; then
-            echo "No files to commit."
-            break
-          fi
-
-          # Create the tree object for the contents of the CMEMS directory
-          INNER_TREE_HASH=$(echo -e "${INNER_TREE_INPUT}" | sed '/^$/d' | git mktree)
-          echo "Inner tree hash (for '${TARGET_DIR}' contents): ${INNER_TREE_HASH}"
+        # --- 1. Programmatically Create a Blob for Each File & Build Tree JSON ---
+        echo "STEP 1: Creating blobs and building tree..."
+        TREE_JSON_PAYLOAD="" # Initialize empty string for the tree's file list
+        
+        # Use find and a while loop to process each file
+        find "$SOURCE_DIR" -type f -name "*.nc" | while read -r filepath; do
+          echo "Processing file: $filepath" >&2
           
-          # 4. Create the Git 'tree' object from the programmatically built input
-          # This tree contains a single entry for the TARGET_DIR subdirectory.
-          # Mode '040000' tells Git this is a directory (tree).
-          FINAL_TREE_HASH=$(echo "040000 tree ${INNER_TREE_HASH}	${TARGET_DIR}" | git mktree)
-          echo "Final tree hash (for root): ${FINAL_TREE_HASH}"
+          # Get the filename from the path
+          filename=$(basename "$filepath")
           
-          # 5. Create the 'commit' object (unchanged)
-          COMMIT_HASH=$(echo "${COMMIT_MESSAGE}" | git commit-tree "${FINAL_TREE_HASH}" -p "${PARENT_COMMIT}")
-          echo "Commit hash is ${COMMIT_HASH}"
+          # Create a blob for the current file
+          CONTENT_BASE64=$(base64 -w 0 "$filepath")
+          BLOB_JSON=$(printf '{"content":"%s", "encoding":"base64"}' "$CONTENT_BASE64")
           
-          # 6. Push the new commit to the target repository (unchanged)
-          if git push ***github.com/${TARGET_ORG}/${TARGET_REPO_NAME}.git "${COMMIT_HASH}:refs/heads/${TARGET_BRANCH}"; then
-            echo "✅ Successfully pushed on attempt $i"
-            break # Exit loop on success
-          else
-            echo "Push failed on attempt $i. Retrying in 10 seconds..."
-            sleep 10
-          fi
+          BLOB_SHA=$(curl -s -L \
+            -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/blobs" \
+            -d "$BLOB_JSON" | jq -r '.sha')
           
-          if [ $i = 3 ]; then
-            echo "❌ All push attempts failed."
-            exit 1
-          fi
+          if [ "$BLOB_SHA" = "null" ]; then echo "Error: Failed to create blob for $filename"; exit 1; fi
+          echo "  - Blob created with SHA: $BLOB_SHA"
+          
+          # Append the JSON for this file to our tree payload string
+          # We add a comma to separate entries, which we'll handle later.
+          TREE_JSON_PAYLOAD+=$(printf '{"path":"%s/%s","mode":"100644","type":"blob","sha":"%s"},' \
+            "$TARGET_DIR" "$filename" "$BLOB_SHA")
         done
+        # Check if any files were processed
+        if [ -z "$TREE_JSON_PAYLOAD" ]; then
+          echo "No .nc files found to commit."
+          exit 0
+        fi
+        
+        # Remove the trailing comma from the last entry
+        TREE_JSON_PAYLOAD="[${TREE_JSON_PAYLOAD%?}]"
+        
+        # --- 2. Get the Parent Commit SHA ---
+        echo "STEP 2: Getting parent commit..."
+        PARENT_SHA=$(curl -s -L \
+          -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/ref/heads/${TARGET_BRANCH}" \
+          | jq -r '.object.sha')
+        if [ "$PARENT_SHA" = "null" ]; then echo "Error: Failed to get parent SHA"; exit 1; fi
+        echo "Parent commit SHA: $PARENT_SHA"
+        
+        # --- 3. Create a single Tree with all files ---
+        echo "STEP 3: Creating tree..."
+        FINAL_TREE_JSON=$(printf '{"base_tree":"%s","tree":%s}' "$PARENT_SHA" "$TREE_JSON_PAYLOAD")
+        
+        TREE_SHA=$(curl -s -L \
+          -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/trees" \
+          -d "$FINAL_TREE_JSON" | jq -r '.sha')
+        if [ "$TREE_SHA" = "null" ]; then echo "Error: Failed to create tree"; exit 1; fi
+        echo "Tree created with SHA: $TREE_SHA"
+        
+        # --- 4. Create a Commit ---
+        echo "STEP 4: Creating commit..."
+        COMMIT_JSON=$(printf '{"message":"%s","parents":["%s"],"tree":"%s"}' \
+          "$COMMIT_MESSAGE" "$PARENT_SHA" "$TREE_SHA")
+          
+        COMMIT_SHA=$(curl -s -L \
+          -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/commits" \
+          -d "$COMMIT_JSON" | jq -r '.sha')
+        if [ "$COMMIT_SHA" = "null" ]; then echo "Error: Failed to create commit"; exit 1; fi
+        echo "Commit created with SHA: $COMMIT_SHA"
+        
+        # --- 5. Update the Branch Reference ---
+        echo "STEP 5: Updating branch reference..."
+        REF_JSON=$(printf '{"sha":"%s"}' "$COMMIT_SHA")
+        curl -s -L \
+          -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+          "https://api.github.com/repos/${TARGET_ORG}/${TARGET_REPO}/git/refs/heads/${TARGET_BRANCH}" \
+          -d "$REF_JSON"
+
+        echo "✅ Branch update complete!"
