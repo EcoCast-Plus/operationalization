@@ -74,7 +74,7 @@ jobs:
     - name: 🚀 Push multiple files via GitHub API
       env:
         # Use your PAT secret here for authentication
-        GH_TOKEN: ${{ secrets.CEG_TARGET_PAT }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # --- Configuration ---
         TARGET_ORG="joshcullen"
