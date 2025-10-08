@@ -22,15 +22,14 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v5
       with:
-        # filter: tree:0
         sparse-checkout: |
           metadata/
           data_acquisition/R/
           data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
         sparse-checkout-cone-mode: false # Set to false for more granular control
     
-    - name: Print dir tree
-      run: tree
+    # - name: Print dir tree
+    #   run: tree
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v3
@@ -39,9 +38,9 @@ jobs:
         channels: conda-forge,defaults
         python-version: 3.12
 
-    # - name: Check disk space
-    #   run: |
-    #     df -h
+    - name: Check disk space
+      run: |
+        df -h
 
     - name: Install Copernicus Marine Toolbox
       shell: bash -el {0}
@@ -67,6 +66,13 @@ jobs:
       run: |
         source("data_acquisition/R/acquire_cmems.R")
       working-directory: ${{ github.workspace }}
+    
+    - name: Create artifact to share data with next job
+      uses: actions/upload-artifact@v4
+        with:
+          name: raw_cmems
+          path: data_acquisition/netcdfs/cmems_ncdfs/
+          retention-days: 1
 
     - name: Commit and Push Changes
       run: |
@@ -79,50 +85,58 @@ jobs:
         git commit -m 'Added new CMEMS files'
         git push
 
-  # process_cmems:
-  #   runs-on: ubuntu-latest
-  #   needs: download_cmems
-  #   # if: ${{ github.event.workflow_run.conclusion == 'success' }}
-  #   env:
-  #     GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-  #   steps:
-  #   - name: Check out repository
-  #     uses: actions/checkout@v5
-  #     with:
-  #       sparse-checkout: |
-  #         metadata/
-  #         data_processing/R/
-  #         data_acquisition/netcdfs/cmems_ncdfs/
-  #         data_processing/TopPredatorWatch/
-  #       sparse-checkout-cone-mode: false # Set to false for more granular control
-  # 
-  #   - name: Install R
-  #     uses: r-lib/actions/setup-r@v2
-  #     with:
-  #       r-version: '4.4.3'
-  # 
-  #   - name: Install R packages
-  #     uses: r-lib/actions/setup-r-dependencies@v2
-  #     with:
-  #       cache-version: 4
-  # 
-  #   - name: Process CMEMS netCDFs and created derived vars
-  #     shell: Rscript {0}
-  #     run: |
-  #       source("data_processing/R/process_cmems.R")
-  #     working-directory: ${{ github.workspace }}
-  # 
-  #   - name: Commit and Push Changes
-  #     run: |
-  #       git config --global user.name "${{ github.actor }}"
-  #       git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-  # 
-  #       git fetch origin gh-pages --depth=1
-  #       git pull
-  #       git add .
-  #       git commit -m 'Processed CMEMS files'
-  #       git push
-  # 
+  process_cmems:
+    runs-on: ubuntu-latest
+    needs: download_cmems
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v5
+      with:
+        sparse-checkout: |
+          metadata/
+          data_processing/R/
+          data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
+          data_processing/TopPredatorWatch/sst_2025-08-31.tiff
+        sparse-checkout-cone-mode: false # Set to false for more granular control
+
+    - name: Download artifact w raw CMEMS files
+      uses: actions/download-artifact@v5
+      with:
+        name: raw_cmems
+    
+    - name: Check files now in dir
+      run: ls -R
+    
+    # - name: Install R
+    #   uses: r-lib/actions/setup-r@v2
+    #   with:
+    #     r-version: '4.4.3'
+    # 
+    # - name: Install R packages
+    #   uses: r-lib/actions/setup-r-dependencies@v2
+    #   with:
+    #     cache-version: 4
+    # 
+    # - name: Process CMEMS netCDFs and created derived vars
+    #   shell: Rscript {0}
+    #   run: |
+    #     source("data_processing/R/process_cmems.R")
+    #   working-directory: ${{ github.workspace }}
+    # 
+    # - name: Commit and Push Changes
+    #   run: |
+    #     git config --global user.name "${{ github.actor }}"
+    #     git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+    # 
+    #     git fetch origin gh-pages --depth=1
+    #     git pull
+    #     git add .
+    #     git commit -m 'Processed CMEMS files'
+    #     git push
+
   # predict_TopPred:
   #   runs-on: ubuntu-latest
   #   needs: process_cmems
