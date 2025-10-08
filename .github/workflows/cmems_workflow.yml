@@ -75,7 +75,7 @@ jobs:
 
         # git fetch origin gh-pages --depth=1
         # git pull
-        git add .
+        git add --sparse .
         git commit -m 'Added new CMEMS files'
         git push
 
