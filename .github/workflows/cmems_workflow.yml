@@ -38,9 +38,9 @@ jobs:
         channels: conda-forge,defaults
         python-version: 3.12
 
-    - name: Check disk space
-      run: |
-        df -h
+    # - name: Check disk space
+    #   run: |
+    #     df -h
 
     - name: Install Copernicus Marine Toolbox
       shell: bash -el {0}
@@ -106,9 +106,10 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: raw_cmems
+        path: data_acquisition/netcdfs/cmems_ncdfs/
     
-    - name: Check files now in dir
-      run: ls -R
+    - name: Print dir tree
+      run: tree
     
     # - name: Install R
     #   uses: r-lib/actions/setup-r@v2
