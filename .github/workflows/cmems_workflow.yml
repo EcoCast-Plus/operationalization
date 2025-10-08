@@ -69,10 +69,10 @@ jobs:
     
     - name: Create artifact to share data with next job
       uses: actions/upload-artifact@v4
-        with:
-          name: raw_cmems
-          path: data_acquisition/netcdfs/cmems_ncdfs/
-          retention-days: 1
+      with:
+        name: raw_cmems
+        path: data_acquisition/netcdfs/cmems_ncdfs/
+        retention-days: 1
 
     - name: Commit and Push Changes
       run: |
