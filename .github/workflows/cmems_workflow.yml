@@ -143,7 +143,7 @@ jobs:
         # git fetch origin gh-pages --depth=1
         # git pull
         
-        git add --sparse .
+        git add --sparse data_processing/TopPredatorWatch/rasters/*.tiff
         git commit -m 'Processed CMEMS files'
         git push
 
@@ -216,7 +216,7 @@ jobs:
         # git fetch origin gh-pages --depth=1
         # git pull
         
-        git add --sparse .
+        git add --sparse model_prediction/TopPredatorWatch/*/
         git commit -m 'Made predictions for Top Predator Watch'
         git push
 
