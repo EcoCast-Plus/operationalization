@@ -26,11 +26,14 @@ jobs:
           DESCRIPTION
           metadata/
           data_acquisition/R/
-          !data_acquisition/netcdfs/*/  # treat path as parent, not recursive
+          # !data_acquisition/netcdfs/cmems_ncdfs/  # treat path as parent, not recursive
         sparse-checkout-cone-mode: false # Set to false for more granular control
     
-    - name: Check dir tree
-      run: tree #mkdir -p data_acquisition/netcdfs/cmems_ncdfs
+    - name: Create dir to store netCDF files
+      run: mkdir -p data_acquisition/netcdfs/cmems_ncdfs
+      
+    - name: Print dir tree
+      run: tree
 
     # - name: Install Conda
     #   uses: conda-incubator/setup-miniconda@v3
