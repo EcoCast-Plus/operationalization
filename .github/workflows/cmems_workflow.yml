@@ -25,8 +25,7 @@ jobs:
         sparse-checkout: |
           metadata/
           data_acquisition/R/
-          data_acquisition/netcdfs/cmems_ncdfs/
-          !data_acquisition/netcdfs/cmems_ncdfs/*.nc  # fetch only root files
+          !data_acquisition/netcdfs/cmems_ncdfs/  # treat path as parent, not recursive
         sparse-checkout-cone-mode: false # Set to false for more granular control
     
     # - name: Create empty dir for NCDF files
