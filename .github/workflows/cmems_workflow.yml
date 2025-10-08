@@ -22,65 +22,62 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v5
       with:
-        sparse-checkout: |
-          DESCRIPTION
-          metadata/
-          data_acquisition/R/
-          # !data_acquisition/netcdfs/cmems_ncdfs/  # treat path as parent, not recursive
-        sparse-checkout-cone-mode: false # Set to false for more granular control
+        filter: tree:0
+        # sparse-checkout: |
+        #   metadata/
+        #   data_acquisition/R/
+        #   data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
+        # sparse-checkout-cone-mode: false # Set to false for more granular control
     
-    - name: Create dir to store netCDF files
-      run: mkdir -p data_acquisition/netcdfs/cmems_ncdfs
-      
-    # - name: Print dir tree
-    #   run: tree
+    - name: Print dir tree
+      run: tree
 
-    - name: Install Conda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        channels: conda-forge,defaults
-        python-version: 3.12
-
-    # - name: Check disk space
+    # - name: Install Conda
+    #   uses: conda-incubator/setup-miniconda@v3
+    #   with:
+    #     auto-update-conda: true
+    #     channels: conda-forge,defaults
+    #     python-version: 3.12
+    # 
+    # # - name: Check disk space
+    # #   run: |
+    # #     df -h
+    # 
+    # - name: Install Copernicus Marine Toolbox
+    #   shell: bash -el {0}
     #   run: |
-    #     df -h
-
-    - name: Install Copernicus Marine Toolbox
-      shell: bash -el {0}
-      run: |
-        conda install -c conda-forge copernicusmarine
-        conda install scipy
-
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.4.3'
-
-    - name: Install R packages
-      uses: r-lib/actions/setup-r-dependencies@v2
-
-    - name: Download CMEMS data
-      env:
-        COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
-        COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
-      shell: Rscript {0}
-      run: |
-        source("data_acquisition/R/acquire_cmems.R")
-      working-directory: ${{ github.workspace }}
-
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-
-        git sparse-checkout disable
-        
-        # git fetch origin gh-pages --depth=1
-        # git pull
-        git add .
-        git commit -m 'Added new CMEMS files'
-        git push
+    #     conda install -c conda-forge copernicusmarine
+    #     conda install scipy
+    # 
+    # - name: Install R
+    #   uses: r-lib/actions/setup-r@v2
+    #   with:
+    #     r-version: '4.4.3'
+    # 
+    # - name: Install R packages
+    #   uses: r-lib/actions/setup-r-dependencies@v2
+    #   with:
+    #     cache: always
+    # 
+    # - name: Download CMEMS data
+    #   env:
+    #     COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+    #     COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+    #   shell: Rscript {0}
+    #   run: |
+    #     source("data_acquisition/R/acquire_cmems.R")
+    #   working-directory: ${{ github.workspace }}
+    # 
+    # - name: Commit and Push Changes
+    #   run: |
+    #     git config --global user.name "${{ github.actor }}"
+    #     git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+    # 
+    #     # git fetch origin gh-pages --depth=1
+    #     # git pull
+    #     git add .
+    #     git commit -m 'Added new CMEMS files'
+    #     git push
 
   # process_cmems:
   #   runs-on: ubuntu-latest
