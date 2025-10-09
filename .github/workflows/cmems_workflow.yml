@@ -174,9 +174,9 @@ jobs:
     # 
     #     git pull
 
-    # - name: List all files in directory
-    #   run: |
-    #     tree
+    - name: List all files in directory before downloading artifact
+      run: |
+        tree
     
     - name: Download artifact w processed CMEMS files
       uses: actions/download-artifact@v5
@@ -221,5 +221,8 @@ jobs:
         
         git add --sparse model_prediction/TopPredatorWatch/*/
         git commit -m 'Made predictions for Top Predator Watch'
+        
+        #Quickly fetches remote changes and reapplies local commit on top of it
+        git pull --rebase
         git push
 
