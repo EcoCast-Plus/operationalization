@@ -145,7 +145,7 @@ jobs:
         
         git add --sparse data_processing/TopPredatorWatch/rasters/*.tiff
         git commit -m 'Processed CMEMS files'
-        # git pull --ff-only  #quickly fetch latest changes from previous job
+        git pull --ff-only  #quickly fetch latest changes from previous job
         git push
 
   predict_TopPred:
