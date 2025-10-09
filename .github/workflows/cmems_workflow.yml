@@ -140,12 +140,14 @@ jobs:
         git config --global user.name "${{ github.actor }}"
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-        git fetch origin gh-pages --depth=1
+        # git fetch origin gh-pages --depth=1
         # git pull
         
         git add --sparse data_processing/TopPredatorWatch/rasters/*.tiff
         git commit -m 'Processed CMEMS files'
-        git pull --ff-only  #quickly fetch latest changes from previous job
+        
+        #Quickly fetches remote changes and reapplies local commit on top of it
+        git pull --rebase
         git push
 
   predict_TopPred:
