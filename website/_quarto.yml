@@ -36,6 +36,8 @@ website:
       &copy; 2025 Josh Cullen
     right: |
       This page is built with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)
+  google-analytics: 
+    tracking-id: "G-VJ65XWLC94"
 
 toc: true
 toc-depth: 5
