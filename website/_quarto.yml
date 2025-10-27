@@ -2,8 +2,6 @@ project:
   type: website
   output-dir: docs
 
-url: https://github.com/joshcullen/CEG_operationalization
-
 website:
   title: "Operationalization of dynamic ocean management tools for US West Coast"
   search: true
