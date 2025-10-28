@@ -14,8 +14,9 @@ jobs:
   update-website:
     runs-on: windows-latest
     permissions:
-      contents: write
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+      contents: read # Change to read only
+      pages: write # Add pages permission
+      id-token: write # Add id-token for OIDC
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -65,13 +66,27 @@ jobs:
     #     path: website
     #   env:
     #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Render and Publish
-      run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+    
+    - name: Render Quarto Website
+      run: quarto render website
+      
+    - name: Setup GH Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact for Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        # The directory where Quarto built the site (usually 'website/_site')
+        path: 'website/_site' 
 
-        # git fetch origin gh-pages --depth=1
-        
-        #Quickly fetches remote changes and reapplies local commit on top of it
-        git pull --rebase
-        quarto publish gh-pages website --no-browser
+  # --- New Job: Deploy the artifact to GitHub Pages ---
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: update-website
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
