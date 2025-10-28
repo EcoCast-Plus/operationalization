@@ -76,8 +76,8 @@ jobs:
     - name: Upload artifact for Pages
       uses: actions/upload-pages-artifact@v3
       with:
-        # The directory where Quarto built the site (usually 'website/_site')
-        path: 'website/_site' 
+        # The directory where Quarto built the site
+        path: 'website/docs' 
 
   # --- New Job: Deploy the artifact to GitHub Pages ---
   deploy:
