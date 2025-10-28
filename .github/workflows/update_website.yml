@@ -7,14 +7,6 @@ on:
     workflows: ["CMEMS model workflow","ROMS model workflow"]
     types:
       - completed
-  # triggered on push to repo
-  # push:
-  #   branches: main
-  # triggered by cron job
-  # schedule:
-  #   # * is a special character in YAML so you have to quote this string
-  #   # https://crontab.cronhub.io
-  #   - cron:  '30 15 * * *'  #scheduled to run at 3:30 pm UTC every day
   # triggered by manual activation on GitHub repo website
   workflow_dispatch:
 
@@ -29,11 +21,11 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-      # with:
-      #   sparse-checkout: |
-      #     metadata/
-      #     website/
-      #   sparse-checkout-cone-mode: true  # Set to false for more granular control
+      with:
+        sparse-checkout: |
+          metadata/
+          website/
+        sparse-checkout-cone-mode: true  # Set to false for more granular control
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v3
@@ -54,7 +46,7 @@ jobs:
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
       with:
-        version: 1.6.4
+        version: 1.9.9
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
@@ -66,11 +58,20 @@ jobs:
       with:
         cache-version: 4
 
+    # - name: Render and Publish
+    #   uses: quarto-dev/quarto-actions/publish@v2
+    #   with:
+    #     target: gh-pages
+    #     path: website
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Render and Publish
-      uses: quarto-dev/quarto-actions/publish@v2
-      with:
-        target: gh-pages
-        # path: https://joshcullen.github.io/CEG_operationalization/
-        path: website
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "${{ github.actor }}"
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+        # git fetch origin gh-pages --depth=1
+        
+        #Quickly fetches remote changes and reapplies local commit on top of it
+        git pull --rebase
+        quarto publish gh-pages website --no-browser
