@@ -7,12 +7,14 @@ website:
   search: true
   repo-url: https://github.com/joshcullen/CEG_operationalization
   repo-subdir: website
-  repo-actions: [edit, issue, source]
+  repo-actions: [issue, source]
   bread-crumbs: false
   sidebar:
     style: docked
     contents:
-      - section: Leatherback Sea Turtle
+      - text: Home
+        href: index.qmd
+      - text: Leatherback Sea Turtle
         href: leatherback.qmd
         contents:
           - lbst_cmems.qmd
@@ -35,8 +37,8 @@ format:
     link-external-icon: true
     link-external-newwindow: true
     fig-align: center
-    # brand: _brand.yml
     css: styles.css
+    axe: true
 
 execute: 
   warning: false
