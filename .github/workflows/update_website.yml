@@ -86,6 +86,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+      pages: write
       id-token: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
