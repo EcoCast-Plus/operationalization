@@ -85,6 +85,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     needs: update-website
     steps:
       - name: Deploy to GitHub Pages
