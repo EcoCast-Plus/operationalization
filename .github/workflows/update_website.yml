@@ -19,6 +19,7 @@ jobs:
       id-token: write # Add id-token for OIDC
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      QUARTO_BUILD_DIR: website/docs
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
@@ -68,31 +69,13 @@ jobs:
     #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Render Quarto Website
-      run: quarto render website
+      run: quarto render website  #renders docs from dir named 'website'
       
-    - name: Setup GH Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload artifact for Pages
-      uses: actions/upload-pages-artifact@v3
+    - name: Deploy to gh-pages branch
+      uses: peaceiris/actions-gh-pages@v3
       with:
-        # The directory where Quarto built the site
-        path: 'website/docs' 
-
-  # --- New Job: Deploy the artifact to GitHub Pages ---
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-    needs: update-website
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ${{ env.QUARTO_BUILD_DIR }} # This is the output folder (website/docs)
+        publish_branch: gh-pages # Explicitly target the gh-pages branch
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
