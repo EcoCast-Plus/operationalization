@@ -77,5 +77,5 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ${{ env.QUARTO_BUILD_DIR }} # This is the output folder (website/docs)
         publish_branch: gh-pages # Explicitly target the gh-pages branch
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
+        user_name: '${{ github.actor }}'
+        user_email: '${{ github.actor }}@users.noreply.github.com'
