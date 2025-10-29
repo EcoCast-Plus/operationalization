@@ -14,15 +14,13 @@ jobs:
   update-website:
     runs-on: windows-latest
     permissions:
-      contents: read # Change to read only
-      pages: write # Add pages permission
-      id-token: write # Add id-token for OIDC
+      contents: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       QUARTO_BUILD_DIR: website/docs
     steps:
     - name: Check out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         sparse-checkout: |
           metadata/
@@ -77,5 +75,3 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ${{ env.QUARTO_BUILD_DIR }} # This is the output folder (website/docs)
         publish_branch: gh-pages # Explicitly target the gh-pages branch
-        user_name: '${{ github.actor }}'
-        user_email: '${{ github.actor }}@users.noreply.github.com'
