@@ -1,0 +1,37 @@
+
+name: Clean up old cmems files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  delete-cmems:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v5
+      with:
+        sparse-checkout: |
+          repo_cleanup/
+          data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
+          data_processing/TopPredatorWatch/rasters/sst_2025-06-23.tiff
+        sparse-checkout-cone-mode: false  # Set to false for more granular control
+
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: Install R packages
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: always
+
+    - name: Delete old CMEMS data
+      shell: Rscript {0}
+      run: |
+        source("repo_cleanup/delete_old_files.R")
+      # working-directory: ${{ github.workspace }}
