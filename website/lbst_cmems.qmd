@@ -114,7 +114,7 @@ navset_card_tab(
 
 ## Interactive Map
 
-This example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail.
+This example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail. Only the latest 60 days of data and predictions are shown at the moment.
 
 ```{=html}
 <iframe width="900" height="650" src="https://joshcullen.shinyapps.io/leatherback_cmems_model/"></iframe>
