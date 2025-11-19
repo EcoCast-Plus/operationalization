@@ -10,7 +10,7 @@ library(stringr)
 OWNER <- "joshcullen"
 REPO <- "CEG_operationalization"
 BRANCH <- "main" 
-DAYS_OLD <- 90
+DAYS_OLD <- 60
 
 # Set to TRUE to ONLY print what would be deleted. 
 # Set to FALSE to perform the actual deletion.
