@@ -24,6 +24,7 @@ jobs:
       with:
         sparse-checkout: |
           metadata/
+          repo_cleanup/
           data_acquisition/R/
           data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
         sparse-checkout-cone-mode: false # Set to false for more granular control
@@ -57,6 +58,11 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
+    
+    - name: Delete old CMEMS data
+      shell: Rscript {0}
+      run: |
+        source("repo_cleanup/delete_old_files.R")
 
     - name: Download CMEMS data
       env:
