@@ -17,14 +17,14 @@ DAYS_OLD <- 90
 DRY_RUN <- FALSE 
 
 # GitHub Token is automatically read from the environment in GitHub Actions
-# GITHUB_TOKEN <- Sys.getenv("GITHUB_TOKEN")
-# 
-# if (is.null(GITHUB_TOKEN) || GITHUB_TOKEN == "") {
-#   stop("GITHUB_TOKEN environment variable not set. This is required.")
-# }
+GITHUB_TOKEN <- Sys.getenv("GITHUB_TOKEN")
+
+if (is.null(GITHUB_TOKEN) || GITHUB_TOKEN == "") {
+  stop("GITHUB_TOKEN environment variable not set. This is required.")
+}
 
 HEADERS <- c(
-  # Authorization = paste("token", GITHUB_TOKEN),
+  Authorization = paste("token", GITHUB_TOKEN),
   Accept = "application/vnd.github.v3+json"
 )
 
