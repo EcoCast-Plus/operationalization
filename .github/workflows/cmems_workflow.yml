@@ -26,7 +26,7 @@ jobs:
           metadata/
           repo_cleanup/
           data_acquisition/R/
-          data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
+          data_acquisition/netcdfs/cmems_ncdfs/placeholder.txt
         sparse-checkout-cone-mode: false # Set to false for more granular control
     
     # - name: Print dir tree
@@ -107,8 +107,8 @@ jobs:
         sparse-checkout: |
           metadata/
           data_processing/R/
-          data_acquisition/netcdfs/cmems_ncdfs/cmems_mod_glo_phy_anfc_0.083deg_P1D-m_mlotst_2025-06-23.nc
-          data_processing/TopPredatorWatch/rasters/sst_2025-08-31.tiff
+          data_acquisition/netcdfs/cmems_ncdfs/placeholder.txt
+          data_processing/TopPredatorWatch/rasters/placeholder.txt
           data_processing/TopPredatorWatch/static/
         sparse-checkout-cone-mode: false # Set to false for more granular control
 
@@ -172,7 +172,7 @@ jobs:
         sparse-checkout: |
           metadata/
           model_prediction/R/
-          data_processing/TopPredatorWatch/rasters/sst_2025-08-31.tiff
+          data_processing/TopPredatorWatch/rasters/placeholder.txt
           model_prediction/TopPredatorWatch/
         sparse-checkout-cone-mode: true  # Set to false for more granular control
 
