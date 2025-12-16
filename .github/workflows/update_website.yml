@@ -15,7 +15,7 @@ jobs:
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. FIXED: Corrected the name of the action (removed "-action")
+    # 1. CLEAN SPACE (Now with the correct name, this will finally work!)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@v1.3.1
       with:
@@ -27,15 +27,21 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. Install SVN
-    - name: Install Subversion
-      run: sudo apt-get install -y subversion
+    # 2. CHECKOUT (Safe & Small)
+    # We use fetch-depth: 1 to get only the latest version (no history)
+    # We use sparse-checkout to get only the website folder
+    - name: Check out repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        sparse-checkout: |
+          metadata/
+          website/
+        sparse-checkout-cone-mode: true
 
-    # 3. Surgical Download (Only website folder)
-    - name: Download Website Folder
-      run: |
-        svn export https://github.com/EcoCast-Plus/operationalization/trunk/website website
-        svn export https://github.com/EcoCast-Plus/operationalization/trunk/metadata metadata
+    # 3. DELETE DESCRIPTION (Prevents R from downloading massive data tools)
+    - name: Remove DESCRIPTION file
+      run: rm -f DESCRIPTION
 
     # 4. Install R
     - name: Install R
