@@ -26,9 +26,9 @@ website:
       - text: "Gulf of Mexico"
         href: gulf_of_mexico/pelagic_longline.qmd
       - text: "Hawaii"
-        href: hawaii_placeholder.qmd
+        href: hawaii/placeholder.qmd
       - text: "South Atlantic"
-        href: south_atlantic_placeholder.qmd
+        href: south_atlantic/placeholder.qmd
 
   # SMART SIDEBARS (Context-Aware)
   # These will inherit the 'docked' style from above
