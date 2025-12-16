@@ -3,7 +3,6 @@ name: Update Website
 on:
   workflow_dispatch:
 
-# These permissions allow direct deployment without a branch
 permissions:
   contents: read
   pages: write
@@ -16,9 +15,9 @@ jobs:
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. Clean space immediately
+    # 1. FIXED: Corrected the name of the action (removed "-action")
     - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space-action@v1.3.1
+      uses: jlumbroso/free-disk-space@v1.3.1
       with:
         tool-cache: true
         android: true
@@ -28,11 +27,11 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. Install SVN (Subversion)
+    # 2. Install SVN
     - name: Install Subversion
       run: sudo apt-get install -y subversion
 
-    # 3. SURGICAL DOWNLOAD: Get ONLY the website folder (No git history = No crash)
+    # 3. Surgical Download (Only website folder)
     - name: Download Website Folder
       run: |
         svn export https://github.com/EcoCast-Plus/operationalization/trunk/website website
@@ -45,7 +44,7 @@ jobs:
         r-version: '4.4.3'
         use-public-rspm: true 
 
-    # 5. Install minimal packages (Manually)
+    # 5. Install minimal packages
     - name: Install Website Packages Only
       run: |
         install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
@@ -61,7 +60,7 @@ jobs:
     - name: Render Quarto Website
       run: quarto render website --no-execute
 
-    # 8. Upload directly to GitHub Pages (Bypassing the gh-pages branch)
+    # 8. Upload Artifact
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
       with:
