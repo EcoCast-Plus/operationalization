@@ -1,43 +1,40 @@
-
 name: Predict from Top Predator Watch
 
 on:
-  # triggered by previous GHA completion in workflow
+  # Triggered after the "Process" workflow completes
   workflow_run:
     workflows: ["Process CMEMS data"]
     types:
       - completed
-  # triggered on push to repo
-  # push:
-  #   branches: main
-  # triggered by cron job
-  # schedule:
-  #   # * is a special character in YAML so you have to quote this string
-  #   # https://crontab.cronhub.io
-  #   - cron:  '30 15 * * *'  #scheduled to run at 3:30 pm UTC every day
-  # triggered by manual activation on GitHub repo website
   workflow_dispatch:
+
+# [CRITICAL FIX] Grants permission to push the prediction results
+permissions:
+  contents: write
 
 jobs:
   predict-TopPred:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Only run if the previous processing job succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
       with:
+        # fetch-depth: 0 is safer for git push operations to avoid "shallow update" errors
+        fetch-depth: 0
         sparse-checkout: |
           metadata/
           model_prediction/R/
           data_processing/TopPredatorWatch/rasters/
-          model_prediction/TopPredatorWatch
-        sparse-checkout-cone-mode: true  # Set to false for more granular control
-    
-    - name: List all files in directory
-      run: |
-        tree
+          model_prediction/TopPredatorWatch/
+        sparse-checkout-cone-mode: true
+
+    - name: List files (Debug)
+      run: tree
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
@@ -48,13 +45,22 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache-version: 4
+        # Explicitly listing critical packages can prevent "package not found" errors
+        packages: |
+          any::remotes
+          any::sf
+          any::terra
+          any::tidyverse
+          any::glue
 
-    - name: Install rnaturalearthhires R package from GitHub
+    - name: Install rnaturalearthhires
       shell: Rscript {0}
       run: |
-        remotes::install_github("ropensci/rnaturalearthhires")
+        if (!requireNamespace("rnaturalearthhires", quietly = TRUE)) {
+          remotes::install_github("ropensci/rnaturalearthhires")
+        }
 
-    - name: Make predictions for Top Predator Watch
+    - name: Make predictions
       shell: Rscript {0}
       run: |
         source("model_prediction/R/predict_TopPredatorWatch.R")
@@ -66,6 +72,14 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git add .
-        git commit -m 'Made predictions for Top Predator Watch'
-        git push
-      
+
+        # Safety Check: Only commit if there are actual new predictions
+        if git diff --staged --quiet; then
+          echo "No new predictions generated to commit."
+        else
+          git commit -m "Made predictions for Top Predator Watch"
+          
+          # [CRITICAL FIX] Pull the changes from the 'Process' job before pushing
+          git pull origin main --rebase
+          git push origin main
+        fi
