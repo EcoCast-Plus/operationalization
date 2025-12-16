@@ -18,7 +18,6 @@ website:
         href: leatherback.qmd
         contents:
           - lbst_cmems.qmd
-          - lbst_roms.qmd
   page-footer:
     left: |
       &copy; 2025 Josh Cullen
