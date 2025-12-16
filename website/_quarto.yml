@@ -3,46 +3,56 @@ project:
   output-dir: docs
 
 website:
-  title: "Operationalization of dynamic ocean management tools for US West Coast"
+  title: "EcoCast Plus Operationalization"
   search: true
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
-  repo-actions: [issue, source]
-  bread-crumbs: false
-  sidebar:
-    style: docked
-    contents:
-      - text: Home
-        href: index.qmd
-      - text: Leatherback Sea Turtle
-        href: leatherback.qmd
-        contents:
-          - lbst_cmems.qmd
-  page-footer:
-    left: |
-      &copy; 2025 Sarah Roberts and Josh Cullen
-    right: |
-      This page is built with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)
-  google-analytics: 
-    tracking-id: "G-VJ65XWLC94"
 
-toc: true
-toc-depth: 5
-  
-  
+  # TOP NAVIGATION BAR
+  navbar:
+    background: primary
+    left:
+      - href: index.qmd
+        text: Home
+      - text: "West Coast"
+        href: west_coast/leatherback.qmd
+      - text: "Gulf of Mexico"
+        href: gulf_of_mexico/pelagic_longline.qmd
+      - text: "Hawaii"
+        href: hawaii_placeholder.qmd # You can create this later
+      - text: "South Atlantic"
+        href: south_atlantic_placeholder.qmd
+
+  # SIDEBAR (Context-Aware)
+  sidebar:
+    # Sidebar 1: Shows up only when viewing West Coast pages
+    - id: west_coast
+      title: "West Coast Tools"
+      contents:
+        - section: "Sea Turtles"
+          contents:
+            - west_coast/leatherback.qmd
+            - west_coast/lbst_cmems.qmd
+
+    # Sidebar 2: Shows up only when viewing Gulf pages
+    - id: gulf_mexico
+      title: "Gulf Tools"
+      contents:
+        - section: "Fisheries"
+          contents:
+            - gulf_of_mexico/pelagic_longline.qmd
+
+    # Sidebar 3: Default fallback (optional)
+    - id: main
+      contents:
+        - index.qmd
+
 format:
   html:
     theme: zephyr
-    link-external-icon: true
-    link-external-newwindow: true
-    fig-align: center
+    toc: true
     css: styles.css
-    axe: true
 
-execute: 
+execute:
   warning: false
   message: false
-
-editor: source
-
-highlight-style: github
