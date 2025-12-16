@@ -3,7 +3,7 @@ name: Update Website
 on:
   workflow_dispatch:
 
-# Grant GITHUB_TOKEN the permissions to deploy directly
+# These permissions allow direct deployment without a branch
 permissions:
   contents: read
   pages: write
@@ -16,7 +16,7 @@ jobs:
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. Clean space immediately (still needed!)
+    # 1. Clean space immediately
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space-action@v1.3.1
       with:
@@ -28,16 +28,15 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. INSTALL SVN (The "Surgical Tool")
+    # 2. Install SVN (Subversion)
     - name: Install Subversion
       run: sudo apt-get install -y subversion
 
-    # 3. SURGICAL DOWNLOAD: Get ONLY the website folder (Bypassing Git History)
+    # 3. SURGICAL DOWNLOAD: Get ONLY the website folder (No git history = No crash)
     - name: Download Website Folder
       run: |
         svn export https://github.com/EcoCast-Plus/operationalization/trunk/website website
         svn export https://github.com/EcoCast-Plus/operationalization/trunk/metadata metadata
-      # If your repo is private, this step requires extra auth, but for public forks it works instantly.
 
     # 4. Install R
     - name: Install R
@@ -46,7 +45,7 @@ jobs:
         r-version: '4.4.3'
         use-public-rspm: true 
 
-    # 5. Install minimal packages (Manually, no cache)
+    # 5. Install minimal packages (Manually)
     - name: Install Website Packages Only
       run: |
         install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
@@ -62,13 +61,13 @@ jobs:
     - name: Render Quarto Website
       run: quarto render website --no-execute
 
-    # 8. Upload the site directly
+    # 8. Upload directly to GitHub Pages (Bypassing the gh-pages branch)
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: ${{ env.QUARTO_BUILD_DIR }}
 
-    # 9. Deploy to GitHub Pages
+    # 9. Deploy
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
