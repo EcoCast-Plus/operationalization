@@ -3,47 +3,56 @@ project:
   output-dir: docs
 
 website:
-  title: "EcoCast Plus Operationalization"
+  title: "EcoCast Plus"
   search: true
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
+  
+  # FIX: This forces the sidebar to be flush with the left edge
+  sidebar:
+    style: docked
+    background: "#f8f9fa" # Light gray background for contrast
+    collapse-level: 1
 
-  # TOP NAVIGATION BAR
+  # TOP NAVIGATION BAR (NOAA BRANDED)
   navbar:
     background: primary
+    logo: "https://upload.wikimedia.org/wikipedia/commons/7/79/NOAA_logo.svg" # High-quality NOAA Logo
     left:
       - href: index.qmd
         text: Home
       - text: "West Coast"
         href: west_coast/leatherback.qmd
-      - text: "Gulf of America"
-        href: gulf/pelagic_longline.qmd
+      - text: "Gulf of Mexico"
+        href: gulf_of_mexico/pelagic_longline.qmd
       - text: "Hawaii"
-        href: hawaii_placeholder.qmd # You can create this later
+        href: hawaii_placeholder.qmd
       - text: "South Atlantic"
         href: south_atlantic_placeholder.qmd
 
-  # SIDEBAR (Context-Aware)
+  # SMART SIDEBARS (Context-Aware)
+  # These will inherit the 'docked' style from above
+  page-navigation: true
   sidebar:
-    # Sidebar 1: Shows up only when viewing West Coast pages
     - id: west_coast
       title: "West Coast Tools"
+      style: docked
       contents:
         - section: "Sea Turtles"
           contents:
             - west_coast/leatherback.qmd
             - west_coast/lbst_cmems.qmd
 
-    # Sidebar 2: Shows up only when viewing Gulf pages
-    - id: gulf
+    - id: gulf_mexico
       title: "Gulf Tools"
+      style: docked
       contents:
         - section: "Fisheries"
           contents:
-            - gulf/pelagic_longline.qmd
+            - gulf_of_mexico/pelagic_longline.qmd
 
-    # Sidebar 3: Default fallback (optional)
     - id: main
+      style: docked
       contents:
         - index.qmd
 
@@ -52,6 +61,7 @@ format:
     theme: zephyr
     toc: true
     css: styles.css
+    mainfont: "Segoe UI, sans-serif" # Clean, modern font
 
 execute:
   warning: false
