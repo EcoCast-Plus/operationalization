@@ -15,7 +15,7 @@ jobs:
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. CLEAN SPACE (Now with the correct name, this will finally work!)
+    # 1. Clean space (Keep this! It ensures the cache has room to live)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@v1.3.1
       with:
@@ -27,9 +27,7 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. CHECKOUT (Safe & Small)
-    # We use fetch-depth: 1 to get only the latest version (no history)
-    # We use sparse-checkout to get only the website folder
+    # 2. Checkout (Safe & Small)
     - name: Check out repository
       uses: actions/checkout@v4
       with:
@@ -37,9 +35,10 @@ jobs:
         sparse-checkout: |
           metadata/
           website/
+          model_prediction/
         sparse-checkout-cone-mode: true
 
-    # 3. DELETE DESCRIPTION (Prevents R from downloading massive data tools)
+    # 3. DELETE DESCRIPTION (Still needed to prevent massive package downloads)
     - name: Remove DESCRIPTION file
       run: rm -f DESCRIPTION
 
@@ -50,11 +49,18 @@ jobs:
         r-version: '4.4.3'
         use-public-rspm: true 
 
-    # 5. Install minimal packages
-    - name: Install Website Packages Only
-      run: |
-        install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
-      shell: Rscript {0}
+    # 5. INSTALL PACKAGES WITH CACHING (The Speed Boost)
+    # We use 'setup-r-dependencies' but we force it to only look for the packages we list.
+    - name: Install Website Packages
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: always  # <--- CACHE ENABLED
+        packages: |
+          any::rmarkdown
+          any::knitr
+          any::quarto
+          any::jsonlite
+          any::yaml
 
     # 6. Setup Quarto
     - name: Set up Quarto
