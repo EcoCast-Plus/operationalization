@@ -1,11 +1,7 @@
 name: Update Website
 
 on:
-  workflow_dispatch: # Allows you to click "Run workflow" manually
-  workflow_run:
-    workflows: ["CMEMS model workflow"]
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   update-website:
@@ -17,7 +13,7 @@ jobs:
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. CRITICAL STEP: Frees up ~20GB of space before doing anything else
+    # 1. Clean space (Crucial)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space-action@v1.3.1
       with:
@@ -29,7 +25,7 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. Downloads ONLY the website folder, ignoring the huge data folders
+    # 2. Checkout the repo
     - name: Check out repository
       uses: actions/checkout@v4
       with:
@@ -38,28 +34,30 @@ jobs:
           website/
         sparse-checkout-cone-mode: true
 
+    # 3. THE FIX: Delete the file that causes the massive download
+    - name: Remove DESCRIPTION file
+      run: rm -f DESCRIPTION
+
+    # 4. Install R
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.4.3'
+        use-public-rspm: true 
+
+    # 5. Manually install ONLY what is needed (Ignore the rest)
+    - name: Install Website Packages Only
+      run: |
+        install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
+      shell: Rscript {0}
+
+    # 6. Setup Quarto
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
       with:
         version: 1.9.9
 
-    # 3. Install R but use binaries (faster/smaller)
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.4.3'
-        use-public-rspm: true # Forces binary downloads (saves space)
-
-    - name: Install R packages (Minimal)
-      uses: r-lib/actions/setup-r-dependencies@v2
-      with:
-        cache-version: 5 # Changed version number to force a fresh cache
-        packages: |
-          any::rmarkdown
-          any::knitr
-          any::quarto
-
-    # 4. Render WITHOUT executing code (prevents crash due to missing data)
+    # 7. Render (No execution of code)
     - name: Render Quarto Website
       run: quarto render website --no-execute
       
