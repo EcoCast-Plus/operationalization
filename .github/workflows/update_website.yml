@@ -3,17 +3,20 @@ name: Update Website
 on:
   workflow_dispatch:
 
+# Grant GITHUB_TOKEN the permissions to deploy directly
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   update-website:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       QUARTO_BUILD_DIR: website/docs
       
     steps:
-    # 1. Clean space (Crucial)
+    # 1. Clean space immediately (still needed!)
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space-action@v1.3.1
       with:
@@ -25,18 +28,16 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    # 2. Checkout the repo
-    - name: Check out repository
-      uses: actions/checkout@v4
-      with:
-        sparse-checkout: |
-          metadata/
-          website/
-        sparse-checkout-cone-mode: true
+    # 2. INSTALL SVN (The "Surgical Tool")
+    - name: Install Subversion
+      run: sudo apt-get install -y subversion
 
-    # 3. THE FIX: Delete the file that causes the massive download
-    - name: Remove DESCRIPTION file
-      run: rm -f DESCRIPTION
+    # 3. SURGICAL DOWNLOAD: Get ONLY the website folder (Bypassing Git History)
+    - name: Download Website Folder
+      run: |
+        svn export https://github.com/EcoCast-Plus/operationalization/trunk/website website
+        svn export https://github.com/EcoCast-Plus/operationalization/trunk/metadata metadata
+      # If your repo is private, this step requires extra auth, but for public forks it works instantly.
 
     # 4. Install R
     - name: Install R
@@ -45,7 +46,7 @@ jobs:
         r-version: '4.4.3'
         use-public-rspm: true 
 
-    # 5. Manually install ONLY what is needed (Ignore the rest)
+    # 5. Install minimal packages (Manually, no cache)
     - name: Install Website Packages Only
       run: |
         install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
@@ -57,13 +58,17 @@ jobs:
       with:
         version: 1.9.9
 
-    # 7. Render (No execution of code)
+    # 7. Render (No execution)
     - name: Render Quarto Website
       run: quarto render website --no-execute
-      
-    - name: Deploy to gh-pages branch
-      uses: peaceiris/actions-gh-pages@v3
+
+    # 8. Upload the site directly
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ${{ env.QUARTO_BUILD_DIR }}
-        publish_branch: gh-pages
+        path: ${{ env.QUARTO_BUILD_DIR }}
+
+    # 9. Deploy to GitHub Pages
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
