@@ -1,8 +1,16 @@
+---
+title: "Welcome"
+sidebar: false  # No sidebar on the homepage
+---
 
-# DOM Tools 
+# Operational Tools Portal
 
-This webpage contains products from a set of DOM tools that are used to predict the distribution of leatherback turtles (*Dermochelys coriacea*) along the US West Coast. While tools for other species exist, they have not yet been included here. This webpage serves as a proof-of-concept platform to demonstrate how the use of features from GitHub (such as GitHub Actions for operationalization and GitHub pages for website hosting) can be used to deploy and maintain DOM tools using freely available cloud services.
+Welcome to the operationalization hub. Please select a region from the top menu to view specific models and tools.
 
+### Available Regions:
+- **West Coast**: Sea Turtle & EcoCast Tools
+- **Gulf of Mexico**: Pelagic Longline Fisheries
+- **Hawaii**: (Coming Soon)
+- **South Atlantic**: (Coming Soon)
 
-Direct any questions or feedback through to <jacullen@ucsc.edu>, or add a GitHub Issue.
-
+Direct any questions or feedback through to sarah.roberts@noaa.gov or jacullen@ucsc.edu
