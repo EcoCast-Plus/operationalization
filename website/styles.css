@@ -1,20 +1,35 @@
+/* NOAA Branding Colors */
+:root {
+  --noaa-blue: #003087;
+  --noaa-light-blue: #0085CA;
+}
 
-/* Spinner */
-.loader {
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #3498db;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  animation: spin 1s linear infinite;
-  margin: 10px auto;
+/* Force the Navbar to use NOAA Blue */
+.navbar {
+  background-color: var(--noaa-blue) !important;
 }
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+
+/* Adjust the logo size in the navbar */
+.navbar-brand img {
+  height: 50px;
+  margin-right: 10px;
 }
-#spinner p {
-  text-align: center;
-  font-weight: bold;
-  color: #333;
+
+/* Make the sidebar slightly more distinct */
+.sidebar {
+  border-right: 1px solid #dee2e6;
+}
+
+/* Header styling */
+h1, h2, h3 {
+  color: var(--noaa-blue);
+  font-weight: 600;
+}
+
+/* Improve link colors */
+a {
+  color: var(--noaa-light-blue);
+}
+a:hover {
+  color: var(--noaa-blue);
 }
