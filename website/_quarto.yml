@@ -5,7 +5,7 @@ project:
 website:
   title: "Operationalization of dynamic ocean management tools for US West Coast"
   search: true
-  repo-url: https://github.com/joshcullen/CEG_operationalization
+  repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
   repo-actions: [issue, source]
   bread-crumbs: false
@@ -20,7 +20,7 @@ website:
           - lbst_cmems.qmd
   page-footer:
     left: |
-      &copy; 2025 Josh Cullen
+      &copy; 2025 Sarah Roberts and Josh Cullen
     right: |
       This page is built with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)
   google-analytics: 
