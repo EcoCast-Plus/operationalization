@@ -17,7 +17,7 @@ website:
         text: Home
       - text: "West Coast"
         href: west_coast/leatherback.qmd
-      - text: "Gulf of Mexico"
+      - text: "Gulf of America"
         href: gulf/pelagic_longline.qmd
       - text: "Hawaii"
         href: hawaii/placeholder.qmd
@@ -40,7 +40,7 @@ website:
             - west_coast/leatherback.qmd
             - west_coast/lbst_cmems.qmd
 
-    # Sidebar 2: Gulf of Mexico
+    # Sidebar 2: Gulf of America
     - id: gulf
       title: "Gulf Tools"
       style: docked
