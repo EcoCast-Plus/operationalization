@@ -1,6 +1,6 @@
 ---
 title: "Welcome"
-sidebar: false  # No sidebar on the homepage
+sidebar: main
 ---
 
 # Operational Tools Portal
@@ -13,4 +13,8 @@ Welcome to the operationalization hub. Please select a region from the top menu 
 - **Hawaii**: (Coming Soon)
 - **South Atlantic**: (Coming Soon)
 
-Direct any questions or feedback to sarah.roberts@noaa.gov or jacullen@ucsc.edu
+### Contact
+For questions, please email:
+
+* **Sarah Roberts:** [sarah.roberts@noaa.gov](mailto:sarah.roberts@noaa.gov)
+* **Josh Cullen:** [jacullen@ucsc.edu](mailto:jacullen@ucsc.edu)
