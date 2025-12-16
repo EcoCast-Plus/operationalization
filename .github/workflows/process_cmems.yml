@@ -1,4 +1,3 @@
-
 name: Process CMEMS data
 
 on:
@@ -7,26 +6,27 @@ on:
     workflows: ["Download CMEMS data"]
     types:
       - completed
-  # triggered on push to repo
-  # push:
-  #   branches: main
-  # triggered by cron job
-  # schedule:
-  #   # * is a special character in YAML so you have to quote this string
-  #   # https://crontab.cronhub.io
-  #   - cron:  '30 15 * * *'  #scheduled to run at 3:30 pm UTC every day
-  # triggered by manual activation on GitHub repo website
+  # triggered by manual activation
   workflow_dispatch:
+
+# [CRITICAL FIX] This gives the bot permission to push the 11 new files
+permissions:
+  contents: write
 
 jobs:
   process-cmems:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Only run if the download actually succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
+      with:
+        # We need the full history to merge/push correctly
+        fetch-depth: 0 
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
@@ -37,10 +37,21 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache-version: 4
+        packages: |
+          any::glue
+          any::terra
+          any::dplyr
+          any::purrr
+          any::readr
+          any::lubridate
 
-    - name: Process CMEMS netCDFs and created derived vars
+    - name: Process CMEMS netCDFs
       shell: Rscript {0}
       run: |
+        # Ensure these folders exist so R doesn't crash
+        if (!dir.exists("data_processing/TopPredatorWatch/rasters")) {
+          dir.create("data_processing/TopPredatorWatch/rasters", recursive = TRUE)
+        }
         source("data_processing/R/process_cmems.R")
       working-directory: ${{ github.workspace }}
 
@@ -50,11 +61,14 @@ jobs:
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
         git add .
-        git commit -m 'Processed CMEMS files'
-        git push
-  # process-cmems-failure:
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-  #   steps:
-  #     - run: echo 'The triggering workflow failed'
-      
+        
+        # Check if we actually created files (Safety Check)
+        if git diff --staged --quiet; then
+          echo "No processed files generated to commit."
+        else
+          git commit -m "Processed CMEMS files"
+          
+          # [SAFETY FIX] Pull changes from the download job before pushing
+          git pull origin main --rebase
+          git push origin main
+        fi
