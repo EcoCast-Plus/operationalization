@@ -16,7 +16,7 @@ website:
         text: Home
       - text: "West Coast"
         href: west_coast/leatherback.qmd
-      - text: "Gulf of Mexico"
+      - text: "Gulf of America"
         href: gulf/pelagic_longline.qmd
       - text: "Hawaii"
         href: hawaii_placeholder.qmd # You can create this later
