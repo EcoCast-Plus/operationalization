@@ -11,18 +11,18 @@ website:
   # TOP NAVIGATION BAR
   navbar:
     background: primary
-    logo: "https://upload.wikimedia.org/wikipedia/commons/7/79/NOAA_logo.svg"
+    logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png"
     left:
       - href: index.qmd
         text: Home
       - text: "West Coast"
         href: west_coast/leatherback.qmd
       - text: "Gulf of Mexico"
-        href: gulf_of_mexico/pelagic_longline.qmd
+        href: gulf/pelagic_longline.qmd
       - text: "Hawaii"
-        href: hawaii_placeholder.qmd
+        href: hawaii/placeholder.qmd
       - text: "South Atlantic"
-        href: south_atlantic_placeholder.qmd
+        href: south_atlantic/placeholder.qmd
 
   # SIDEBAR CONFIGURATION (Merged into one block)
   page-navigation: true
