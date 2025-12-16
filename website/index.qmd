@@ -13,4 +13,4 @@ Welcome to the operationalization hub. Please select a region from the top menu 
 - **Hawaii**: (Coming Soon)
 - **South Atlantic**: (Coming Soon)
 
-Direct any questions or feedback through to sarah.roberts@noaa.gov or jacullen@ucsc.edu
+Direct any questions or feedback to sarah.roberts@noaa.gov or jacullen@ucsc.edu
