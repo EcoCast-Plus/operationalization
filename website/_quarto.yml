@@ -7,17 +7,11 @@ website:
   search: true
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
-  
-  # FIX: This forces the sidebar to be flush with the left edge
-  sidebar:
-    style: docked
-    background: "#f8f9fa" # Light gray background for contrast
-    collapse-level: 1
 
-  # TOP NAVIGATION BAR (NOAA BRANDED)
+  # TOP NAVIGATION BAR
   navbar:
     background: primary
-    logo: "https://upload.wikimedia.org/wikipedia/commons/7/79/NOAA_logo.svg" # High-quality NOAA Logo
+    logo: "https://upload.wikimedia.org/wikipedia/commons/7/79/NOAA_logo.svg"
     left:
       - href: index.qmd
         text: Home
@@ -26,33 +20,40 @@ website:
       - text: "Gulf of Mexico"
         href: gulf_of_mexico/pelagic_longline.qmd
       - text: "Hawaii"
-        href: hawaii/placeholder.qmd
+        href: hawaii_placeholder.qmd
       - text: "South Atlantic"
-        href: south_atlantic/placeholder.qmd
+        href: south_atlantic_placeholder.qmd
 
-  # SMART SIDEBARS (Context-Aware)
-  # These will inherit the 'docked' style from above
+  # SIDEBAR CONFIGURATION (Merged into one block)
   page-navigation: true
+  
   sidebar:
+    # Sidebar 1: West Coast
     - id: west_coast
       title: "West Coast Tools"
       style: docked
+      background: "#f8f9fa"
+      collapse-level: 1
       contents:
         - section: "Sea Turtles"
           contents:
             - west_coast/leatherback.qmd
             - west_coast/lbst_cmems.qmd
 
+    # Sidebar 2: Gulf of Mexico
     - id: gulf_mexico
       title: "Gulf Tools"
       style: docked
+      background: "#f8f9fa"
       contents:
         - section: "Fisheries"
           contents:
             - gulf_of_mexico/pelagic_longline.qmd
 
+    # Sidebar 3: Default/Home
     - id: main
       style: docked
+      background: "#f8f9fa"
       contents:
         - index.qmd
 
@@ -61,7 +62,7 @@ format:
     theme: zephyr
     toc: true
     css: styles.css
-    mainfont: "Segoe UI, sans-serif" # Clean, modern font
+    mainfont: "Segoe UI, sans-serif"
 
 execute:
   warning: false
