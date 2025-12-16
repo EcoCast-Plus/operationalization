@@ -41,14 +41,14 @@ website:
             - west_coast/lbst_cmems.qmd
 
     # Sidebar 2: Gulf of Mexico
-    - id: gulf_mexico
+    - id: gulf
       title: "Gulf Tools"
       style: docked
       background: "#f8f9fa"
       contents:
         - section: "Fisheries"
           contents:
-            - gulf_of_mexico/pelagic_longline.qmd
+            - gulf/pelagic_longline.qmd
 
     # Sidebar 3: Default/Home
     - id: main
