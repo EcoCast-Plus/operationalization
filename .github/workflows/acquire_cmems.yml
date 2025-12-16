@@ -12,6 +12,19 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
+    # --- [NEW STEP] FREE UP DISK SPACE ---
+    # This deletes Android SDKs, .NET, and Haskell to make room for your data
+    - name: Free Disk Space (Ubuntu)
+      run: |
+        echo "Disk space before cleanup:"
+        df -h
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        echo "Disk space after cleanup:"
+        df -h
+
     - name: Check out repository
       uses: actions/checkout@v4
       with:
@@ -27,13 +40,17 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
         activate-environment: test
+        # Add this to clean up conda cache and save more space
+        clean-patched-environment-file: true 
 
     - name: Install Copernicus Marine Toolbox
       shell: bash -el {0}
       run: |
         conda install -c conda-forge copernicusmarine scipy
+        # Clean conda cache to save space
+        conda clean --all --yes
         
-        # [CRITICAL FIX] Find the tool and save path for R
+        # Capture Path
         TOOL_PATH=$(which copernicusmarine)
         echo "Found copernicusmarine at: $TOOL_PATH"
         echo "CM_TOOL_PATH=$TOOL_PATH" >> $GITHUB_ENV
