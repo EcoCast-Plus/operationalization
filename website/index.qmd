@@ -9,7 +9,7 @@ Welcome to the operationalization hub. Please select a region from the top menu 
 
 ### Available Regions:
 - **West Coast**: Sea Turtle & EcoCast Tools
-- **Gulf of Mexico**: Pelagic Longline Fisheries
+- **Gulf of America**: Pelagic Longline Fisheries
 - **Hawaii**: (Coming Soon)
 - **South Atlantic**: (Coming Soon)
 
