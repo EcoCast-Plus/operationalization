@@ -13,21 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUARTO_BUILD_DIR: website/docs
+      # Tell R where to install packages so we can cache them easily
+      R_LIBS_USER: ${{ github.workspace }}/R/library
       
     steps:
-    # 1. Clean space (Keep this! It ensures the cache has room to live)
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@v1.3.1
-      with:
-        tool-cache: true
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: true
-
-    # 2. Checkout (Safe & Small)
+    # 1. Checkout (Sparse)
     - name: Check out repository
       uses: actions/checkout@v4
       with:
@@ -38,47 +28,58 @@ jobs:
           model_prediction/
         sparse-checkout-cone-mode: true
 
-    # 3. DELETE DESCRIPTION (Still needed to prevent massive package downloads)
+    # 2. Delete DESCRIPTION (Still vital!)
     - name: Remove DESCRIPTION file
       run: rm -f DESCRIPTION
 
-    # 4. Install R
+    # 3. Install R (Basic version only)
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
         r-version: '4.4.3'
         use-public-rspm: true 
 
-    # 5. INSTALL PACKAGES WITH CACHING (The Speed Boost)
-    # We use 'setup-r-dependencies' but we force it to only look for the packages we list.
-    - name: Install Website Packages
-      uses: r-lib/actions/setup-r-dependencies@v2
+    # 4. CACHE R PACKAGES (The Speed Boost)
+    # This checks if we already downloaded the packages in a previous run.
+    - name: Cache R Packages
+      uses: actions/cache@v4
+      id: cache-r
       with:
-        cache: always  # <--- CACHE ENABLED
-        packages: |
-          any::rmarkdown
-          any::knitr
-          any::quarto
-          any::jsonlite
-          any::yaml
+        path: ${{ env.R_LIBS_USER }}
+        # The key changes only if you modify the workflow file (adding new packages)
+        key: ${{ runner.os }}-r-website-${{ hashFiles('.github/workflows/website.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-r-website-
 
-    # 6. Setup Quarto
+    # 5. Create Library Directory (Required for caching)
+    - name: Create R Library
+      run: dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)
+      shell: Rscript {0}
+
+    # 6. Install Packages (ONLY runs if cache is missing)
+    # We skip the heavy system dependencies because we only need HTML support.
+    - name: Install Website Packages
+      if: steps.cache-r.outputs.cache-hit != 'true'
+      run: |
+        install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
+      shell: Rscript {0}
+
+    # 7. Setup Quarto
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
       with:
         version: 1.9.9
 
-    # 7. Render (No execution)
+    # 8. Render
     - name: Render Quarto Website
       run: quarto render website --no-execute
 
-    # 8. Upload Artifact
+    # 9. Upload & Deploy
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: ${{ env.QUARTO_BUILD_DIR }}
 
-    # 9. Deploy
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
