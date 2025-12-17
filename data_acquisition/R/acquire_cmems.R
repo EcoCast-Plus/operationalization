@@ -6,8 +6,6 @@ library(readr)
 library(glue)
 library(lubridate)
 
-source("data_acquisition/R/acquire_utils.R")
-
 # Load metadata
 meta <- read_csv("metadata/model_metadata.csv")
 
@@ -15,16 +13,20 @@ meta <- read_csv("metadata/model_metadata.csv")
 ncdir_cmems = "data_acquisition/netcdfs/cmems_ncdfs"
 
 # ----------------------------------------------------------------
-# DATE LOGIC FIX
-# ----------------------------------------------------------------
-# We need two different dates:
-# 1. Forecast Date: For Models (Physics) -> Tomorrow
-# 2. Observation Date: For Satellites (Chl, SLA) -> Yesterday (latest available)
+# DATE LOGIC
 # ----------------------------------------------------------------
 date_forecast <- Sys.Date() + 1
 date_obs      <- Sys.Date() - 1
 
 message(glue("Target Dates -> Forecasts: {date_forecast} | Observations: {date_obs}"))
+
+# ----------------------------------------------------------------
+# TOOL PATH CHECK
+# ----------------------------------------------------------------
+# Try env var, then fallback to standard path, then just 'copernicusmarine'
+tool_path <- Sys.getenv("CM_TOOL_PATH")
+if (tool_path == "") tool_path <- "/usr/share/miniconda/envs/test/bin/copernicusmarine"
+message(glue("Using Copernicus Tool at: {tool_path}"))
 
 
 ###############
@@ -43,34 +45,35 @@ cmems_rows <- meta_cmems |>
 tryCatch(
   expr ={
     
-    # Download netCDF files if available
     purrr::walk(cmems_rows, function(x) {
       
-      # [LOGIC] Determine which date to use based on product type
-      # If the product name contains "obs", it's satellite data (use past date).
-      # Otherwise, assume it's a model (use forecast date).
+      # 1. Determine Date
       target_date <- if (grepl("obs", x$product, ignore.case = TRUE)) date_obs else date_forecast
       
-      # Handle depths
-      d_min <- if(!is.na(x$depth_min)) x$depth_min else NULL
-      d_max <- if(!is.na(x$depth_max)) x$depth_max else NULL
-      
-      # Define filename with the CORRECT date for that file
+      # 2. Determine Filename
       unique_savename <- glue("{x$product}_{x$model_var_name}_{target_date}")
+      outfile <- file.path(ncdir_cmems, paste0(unique_savename, ".nc"))
       
       message(glue("Downloading {unique_savename} (Date: {target_date})..."))
       
-      # [CODE FIX] Removed 'cmems_user_env =' name. Passed path as first argument.
-      download_cmems(
-        Sys.getenv("CM_TOOL_PATH", "/usr/share/miniconda/envs/test/bin/copernicusmarine"), 
-        ncdir_cmems,
-        x$product,
-        x$variable,
-        unique_savename,
-        target_date,
-        d_min,
-        d_max
-      )
+      # 3. Construct Command (Handling Depths Safely)
+      # Base command
+      cmd <- glue("{tool_path} subset -i {x$product} -x {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download")
+      
+      # Conditionally add depth flags ONLY if they are not NA
+      if (!is.na(x$depth_min)) {
+        cmd <- paste(cmd, glue("--min-depth {x$depth_min}"))
+      }
+      if (!is.na(x$depth_max)) {
+        cmd <- paste(cmd, glue("--max-depth {x$depth_max}"))
+      }
+      
+      # 4. Execute
+      exit_code <- system(cmd)
+      
+      if (exit_code != 0) {
+        warning(glue("Download failed for {unique_savename} with exit code {exit_code}"))
+      }
     })
     
   },
