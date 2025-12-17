@@ -36,3 +36,5 @@ cmems_mod_glo_phy_anfc_0.083deg_P1D-m,so,,CMEMS,so,raw,Gulf_Model,0.49,0.49
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,uo,,CMEMS,uo,raw,Gulf_Model,0.49,0.49
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,vo,,CMEMS,vo,raw,Gulf_Model,0.49,0.49
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,zos,,CMEMS,ssh,raw,Gulf_Model,,
+cmems_obs-oc_glo_bgc-plankton_nrt_l4-gapfree-multi-4km_P1D,CHL,https://data.marine.copernicus.eu/product/OCEANCOLOUR_GLO_BGC_L4_NRT_009_102/description,CMEMS,l.chl,raw,Gulf_Model,0.5,0.5
+
