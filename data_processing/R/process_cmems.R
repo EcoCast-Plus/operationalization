@@ -16,12 +16,16 @@ meta <- read_csv("metadata/model_metadata.csv")
 ncdir_TopPred <- "data_acquisition/netcdfs/cmems_ncdfs"
 outdir_TopPred <- "data_processing/TopPredatorWatch/rasters"
 
-# Ensure output directory exists (Safety check)
+# Ensure output directory exists
 if (!dir.exists(outdir_TopPred)) dir.create(outdir_TopPred, recursive = TRUE)
 
-# Define date of interest (Tomorrow, matching the download/predict steps)
-get_date <- Sys.Date() + 1
-message(glue("Processing CMEMS data for target date: {get_date}"))
+# ----------------------------------------------------------------
+# DATE LOGIC (Must match acquire_cmems.R)
+# ----------------------------------------------------------------
+date_forecast <- Sys.Date() + 1
+date_obs      <- Sys.Date() - 1
+
+message(glue("Processing Target Dates -> Forecasts: {date_forecast} | Observations: {date_obs}"))
 
 # Define raster template
 template_TopPred <- rast("data_processing/TopPredatorWatch/static/template.tiff")
@@ -36,13 +40,20 @@ meta_TopPred <- meta |>
   filter(data_type == 'CMEMS',
          (category != 'derived' | is.na(category)),
          
-         # [CRITICAL FIX] Exclude deep/3D variables so this script doesn't crash.
-         # The 'predict_gulf.R' script will read these raw NetCDFs directly instead.
+         # Exclude deep/3D variables (handled by predict_gulf.R)
          !grepl("150m|500m|bottom|so|uo|vo|thetao", model_var_name)
   ) |> 
-  mutate(savename = case_when(!variable %in% c('ugosa','vgosa') ~ glue('{model_var_name}'),
+  mutate(
+    # [LOGIC FIX] Determine the correct date for the filename
+    file_date = ifelse(grepl("obs", product, ignore.case = TRUE), 
+                       as.character(date_obs), 
+                       as.character(date_forecast)),
+    
+    savename = case_when(!variable %in% c('ugosa','vgosa') ~ glue('{model_var_name}'),
                               TRUE ~ glue('{variable}')),
-         filename = glue("{product}_{variable}_{get_date}.nc")
+    
+    # Construct filename using the correct date
+    filename = glue("{product}_{variable}_{file_date}.nc")
   ) |> 
   split(~variable)
 
@@ -54,7 +65,7 @@ walk(meta_TopPred,
                    variable = .x$variable,
                    outdir = outdir_TopPred,
                    savename = .x$savename,
-                   get_date = get_date,
+                   get_date = as.Date(.x$file_date), # Pass specific date to function
                    template = template_TopPred,
                    tool = "TopPredatorWatch"),
      .progress = TRUE
@@ -74,11 +85,16 @@ TopPred_meta_derived <- meta |>
 
 
 # Calculate derived variables
+# Note: For derived vars, we usually use the forecast date (or the date of the primary input).
+# If derived vars depend on OBS data (like EKE from SLA), this might need adjustment.
+# For now, we assume derived vars are based on the main 'get_date' logic or exist for both.
+# We will default to date_forecast for consistency with the main model run, 
+# but if EKE fails, we might need to switch this to date_obs.
 walk(TopPred_meta_derived,
      ~calc_derived_vars(dir = outdir_TopPred,
                         variable = .x$variable,
                         savename = .x$savename,
-                        get_date = get_date,
+                        get_date = date_forecast, # Defaulting to forecast date
                         tool = "TopPredatorWatch"),
      .progress = TRUE
 )
