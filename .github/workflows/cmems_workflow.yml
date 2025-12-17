@@ -13,13 +13,13 @@ jobs:
   # JOB 1: DOWNLOAD ALL DATA (Surface + Deep)
   # ----------------------------------------------------------------
   download_cmems:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
       COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
     steps:
-    # 1. CLEAN SYSTEM BLOAT (Make room for the job)
+    # 1. CLEAN SYSTEM BLOAT
     - name: Free Disk Space
       run: |
         sudo rm -rf /usr/share/dotnet
@@ -28,6 +28,15 @@ jobs:
 
     - name: Check out repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        filter: blob:none
+        sparse-checkout: |
+          metadata/
+          repo_cleanup/
+          data_acquisition/R/
+          DESCRIPTION
+        sparse-checkout-cone-mode: false
 
     - name: Install Conda & Capture Tool Path
       uses: conda-incubator/setup-miniconda@v3
@@ -49,13 +58,12 @@ jobs:
       with:
         r-version: '4.4.3'
 
-    # [FIX] This now reads your DESCRIPTION file automatically!
-    - name: Install R Packages
+    - name: Install R Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
         
-    # 2. CLEAN OLD PROJECT FILES (Your script)
+    # 2. CLEAN OLD PROJECT FILES
     - name: Delete Old CMEMS Data
       shell: Rscript {0}
       run: |
@@ -89,11 +97,26 @@ jobs:
   # ----------------------------------------------------------------
   process_cmems:
     needs: download_cmems
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        filter: blob:none
+        sparse-checkout: |
+          metadata/
+          data_processing/R/
+          data_processing/TopPredatorWatch/static/
+          DESCRIPTION
+        sparse-checkout-cone-mode: false
     
     - name: Download Raw Data
       uses: actions/download-artifact@v4
@@ -132,11 +155,26 @@ jobs:
   # ----------------------------------------------------------------
   predict_top_pred:
     needs: process_cmems
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        filter: blob:none
+        sparse-checkout: |
+          metadata/
+          model_prediction/R/
+          model_prediction/TopPredatorWatch/
+          DESCRIPTION
+        sparse-checkout-cone-mode: false
 
     - name: Download Processed TIFFs
       uses: actions/download-artifact@v4
@@ -150,8 +188,6 @@ jobs:
     - uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-
-    # Note: 'Remotes' in DESCRIPTION file handles rnaturalearthhires install now!
 
     - name: Run TopPred Prediction
       shell: Rscript {0}
@@ -169,11 +205,26 @@ jobs:
   # ----------------------------------------------------------------
   # predict_gulf:
   #   needs: [download_cmems, process_cmems]
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-22.04
   #   env:
   #     GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
   #   steps:
+  #   - name: Free Disk Space
+  #     run: |
+  #       sudo rm -rf /usr/share/dotnet
+  #       sudo rm -rf /usr/local/lib/android
+  #       sudo rm -rf /opt/ghc
+
   #   - uses: actions/checkout@v4
+  #     with:
+  #       fetch-depth: 1
+  #       filter: blob:none
+  #       sparse-checkout: |
+  #         metadata/
+  #         model_prediction/R/
+  #         app/
+  #         DESCRIPTION
+  #       sparse-checkout-cone-mode: false
 
   #   # Get RAW NetCDFs (for deep variables)
   #   - name: Download Raw Data
