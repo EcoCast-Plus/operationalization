@@ -27,6 +27,17 @@ tool_path <- Sys.getenv("CM_TOOL_PATH")
 if (tool_path == "") tool_path <- "/usr/share/miniconda/envs/test/bin/copernicusmarine"
 message(glue("Using Copernicus Tool at: {tool_path}"))
 
+# ----------------------------------------------------------------
+# REGIONAL BOUNDING BOXES
+# ----------------------------------------------------------------
+# 1. Gulf of Mexico (Small, keeps files tiny)
+bbox_gulf <- "--minimum-longitude -98 --maximum-longitude -81 --minimum-latitude 18 --maximum-latitude 31"
+
+# 2. Top Predator / West Coast (Larger area based on your leatherback map)
+# Note: This is a large box (-160W to -110W, 10N to 60N). 
+# If files >100MB, shrinking this is the first thing to try.
+bbox_toppred <- "--minimum-longitude -160 --maximum-longitude -110 --minimum-latitude 10 --maximum-latitude 60"
+
 
 ###############
 #### cmems ####
@@ -54,15 +65,18 @@ tryCatch(
       
       message(glue("Downloading {unique_savename} (Date: {target_date})..."))
       
-      # 3. Construct Command
-      # [FIXED FLAGS]
-      # -v : Variable name (was -x)
-      # --minimum-depth : (was --min-depth)
-      # --maximum-depth : (was --max-depth)
+      # 3. Determine Region (Dynamic Subsetting)
+      # Checks the 'model' column in your CSV
+      subset_cmd <- if (x$model == "Gulf_Model") {
+        bbox_gulf
+      } else {
+        bbox_toppred # Default to Top Predator box for everything else
+      }
       
-      cmd <- glue("{tool_path} subset -i {x$product} -v {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download")
+      # 4. Construct Command
+      cmd <- glue("{tool_path} subset -i {x$product} -v {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download {subset_cmd}")
       
-      # Conditionally add depth flags ONLY if they are not NA
+      # Conditionally add depth flags
       if (!is.na(x$depth_min)) {
         cmd <- paste(cmd, glue("--minimum-depth {x$depth_min}"))
       }
@@ -70,10 +84,9 @@ tryCatch(
         cmd <- paste(cmd, glue("--maximum-depth {x$depth_max}"))
       }
       
-      # 4. Execute
+      # 5. Execute
       exit_code <- system(cmd)
       
-      # Note: Copernicus tool might return non-zero for warnings, so we just warn instead of hard stopping
       if (exit_code != 0) {
         warning(glue("Download process returned exit code {exit_code} for {unique_savename}. Check if file exists."))
       }
