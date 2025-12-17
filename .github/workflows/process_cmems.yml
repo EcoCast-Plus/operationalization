@@ -1,54 +1,54 @@
 name: Process CMEMS data
 
 on:
-  # triggered by previous GHA completion in workflow
+  # Triggered automatically after Download completes
   workflow_run:
     workflows: ["Download CMEMS data"]
     types:
       - completed
-  # triggered by manual activation
+  # Allow manual trigger for testing
   workflow_dispatch:
 
-# [CRITICAL FIX] This gives the bot permission to push the 11 new files
 permissions:
   contents: write
 
 jobs:
   process-cmems:
-    runs-on: ubuntu-latest
-    # Only run if the download actually succeeded
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-22.04 # Use 22.04 for fast binaries
+    # Run if triggered automatically (success) OR manually (dispatch)
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     
     steps:
+    # 1. CLEAN SYSTEM BLOAT
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        echo "Disk space cleared."
+
     - name: Check out repository
       uses: actions/checkout@v4
       with:
-        # We need the full history to merge/push correctly
-        fetch-depth: 0 
+        fetch-depth: 0 # Need full history for git pull/merge
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: '4.3.3'
+        r-version: '4.4.3' # Consistent with other workflows
 
-    - name: Install R packages
+    # 2. INSTALL PACKAGES (Fast, via DESCRIPTION file)
+    - name: Install Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
-        cache-version: 4
-        packages: |
-          any::glue
-          any::terra
-          any::dplyr
-          any::purrr
-          any::readr
-          any::lubridate
+        cache: always
 
     - name: Process CMEMS netCDFs
       shell: Rscript {0}
       run: |
-        # Ensure these folders exist so R doesn't crash
+        # Ensure target directory exists
         if (!dir.exists("data_processing/TopPredatorWatch/rasters")) {
           dir.create("data_processing/TopPredatorWatch/rasters", recursive = TRUE)
         }
@@ -62,13 +62,13 @@ jobs:
 
         git add .
         
-        # Check if we actually created files (Safety Check)
+        # Check if we actually created files
         if git diff --staged --quiet; then
           echo "No processed files generated to commit."
         else
           git commit -m "Processed CMEMS files"
           
-          # [SAFETY FIX] Pull changes from the download job before pushing
+          # Pull changes from the download job (or remote) before pushing
           git pull origin main --rebase
           git push origin main
         fi
