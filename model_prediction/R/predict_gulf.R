@@ -25,11 +25,11 @@ library(glue)
 # "Raw" inputs passed from Job 1
 raw_ncdir     <- "data_acquisition/netcdfs/cmems_ncdfs"
 # Where models live
-models_dir    <- "app/results"
+models_dir    <- "gulf/results"
 # Where static files (climatology/bathy) live
-static_dir    <- "app/data"
+static_dir    <- "gulf/data"
 # Where to save final predictions
-output_dir    <- "app/data"
+output_dir    <- "gulf/data"
 
 # Create output dir if missing
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
