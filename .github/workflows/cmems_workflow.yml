@@ -53,17 +53,8 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        packages: |
-          any::readr 
-          any::dplyr 
-          any::glue 
-          any::purrr 
-          any::httr       # Required for GitHub API calls
-          any::jsonlite   # Required for parsing API response
-          any::lubridate  # Required for date math
-          any::stringr    # Required for regex
-          any::gh         # Good practice for GH interactions
-
+        extra-packages: any::rcmdcheck
+        
     # 2. CLEAN OLD PROJECT FILES (Your script)
     - name: Delete Old CMEMS Data
       shell: Rscript {0}
@@ -116,8 +107,7 @@ jobs:
     - uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        packages: any::terra any::dplyr any::glue any::purrr any::readr any::lubridate
-
+        
     - name: Run Standard Processing
       shell: Rscript {0}
       run: source("data_processing/R/process_cmems.R")
@@ -160,15 +150,6 @@ jobs:
     - uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        packages: |
-          any::remotes
-          any::sf
-          any::terra
-          any::tidyverse
-          any::glue
-          any::gbm
-          any::rnaturalearth
-          any::pals
 
     - name: Install rnaturalearthhires
       shell: Rscript {0}
