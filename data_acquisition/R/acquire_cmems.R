@@ -23,7 +23,6 @@ message(glue("Target Dates -> Forecasts: {date_forecast} | Observations: {date_o
 # ----------------------------------------------------------------
 # TOOL PATH CHECK
 # ----------------------------------------------------------------
-# Try env var, then fallback to standard path, then just 'copernicusmarine'
 tool_path <- Sys.getenv("CM_TOOL_PATH")
 if (tool_path == "") tool_path <- "/usr/share/miniconda/envs/test/bin/copernicusmarine"
 message(glue("Using Copernicus Tool at: {tool_path}"))
@@ -52,27 +51,31 @@ tryCatch(
       
       # 2. Determine Filename
       unique_savename <- glue("{x$product}_{x$model_var_name}_{target_date}")
-      outfile <- file.path(ncdir_cmems, paste0(unique_savename, ".nc"))
       
       message(glue("Downloading {unique_savename} (Date: {target_date})..."))
       
-      # 3. Construct Command (Handling Depths Safely)
-      # Base command
-      cmd <- glue("{tool_path} subset -i {x$product} -x {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download")
+      # 3. Construct Command
+      # [FIXED FLAGS]
+      # -v : Variable name (was -x)
+      # --minimum-depth : (was --min-depth)
+      # --maximum-depth : (was --max-depth)
+      
+      cmd <- glue("{tool_path} subset -i {x$product} -v {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download")
       
       # Conditionally add depth flags ONLY if they are not NA
       if (!is.na(x$depth_min)) {
-        cmd <- paste(cmd, glue("--min-depth {x$depth_min}"))
+        cmd <- paste(cmd, glue("--minimum-depth {x$depth_min}"))
       }
       if (!is.na(x$depth_max)) {
-        cmd <- paste(cmd, glue("--max-depth {x$depth_max}"))
+        cmd <- paste(cmd, glue("--maximum-depth {x$depth_max}"))
       }
       
       # 4. Execute
       exit_code <- system(cmd)
       
+      # Note: Copernicus tool might return non-zero for warnings, so we just warn instead of hard stopping
       if (exit_code != 0) {
-        warning(glue("Download failed for {unique_savename} with exit code {exit_code}"))
+        warning(glue("Download process returned exit code {exit_code} for {unique_savename}. Check if file exists."))
       }
     })
     
