@@ -1,4 +1,3 @@
-
 # Script for processing CMEMS data using GitHub Actions workflow
 
 library(glue)
@@ -10,7 +9,6 @@ library(lubridate)
 
 source("data_processing/R/process_utils.R")
 
-
 # Load metadata
 meta <- read_csv("metadata/model_metadata.csv")
 
@@ -18,12 +16,15 @@ meta <- read_csv("metadata/model_metadata.csv")
 ncdir_TopPred <- "data_acquisition/netcdfs/cmems_ncdfs"
 outdir_TopPred <- "data_processing/TopPredatorWatch/rasters"
 
-# Define date of interest
-get_date <- Sys.Date() - 1
+# Ensure output directory exists (Safety check)
+if (!dir.exists(outdir_TopPred)) dir.create(outdir_TopPred, recursive = TRUE)
+
+# Define date of interest (Tomorrow, matching the download/predict steps)
+get_date <- Sys.Date() + 1
+message(glue("Processing CMEMS data for target date: {get_date}"))
 
 # Define raster template
 template_TopPred <- rast("data_processing/TopPredatorWatch/static/template.tiff")
-
 
 
 ########################################################
@@ -33,7 +34,12 @@ template_TopPred <- rast("data_processing/TopPredatorWatch/static/template.tiff"
 # Prepare metadata info for I/O
 meta_TopPred <- meta |> 
   filter(data_type == 'CMEMS',
-         category != 'derived' | is.na(category)) |> 
+         (category != 'derived' | is.na(category)),
+         
+         # [CRITICAL FIX] Exclude deep/3D variables so this script doesn't crash.
+         # The 'predict_gulf.R' script will read these raw NetCDFs directly instead.
+         !grepl("150m|500m|bottom|so|uo|vo|thetao", model_var_name)
+  ) |> 
   mutate(savename = case_when(!variable %in% c('ugosa','vgosa') ~ glue('{model_var_name}'),
                               TRUE ~ glue('{variable}')),
          filename = glue("{product}_{variable}_{get_date}.nc")
@@ -53,7 +59,6 @@ walk(meta_TopPred,
                    tool = "TopPredatorWatch"),
      .progress = TRUE
 )
-
 
 
 ######################################################
