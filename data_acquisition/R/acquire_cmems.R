@@ -11,6 +11,7 @@ meta <- read_csv("metadata/model_metadata.csv")
 
 # Define output directories
 ncdir_cmems = "data_acquisition/netcdfs/cmems_ncdfs"
+if (!dir.exists(ncdir_cmems)) dir.create(ncdir_cmems, recursive = TRUE)
 
 # ----------------------------------------------------------------
 # DATE LOGIC
@@ -30,12 +31,10 @@ message(glue("Using Copernicus Tool at: {tool_path}"))
 # ----------------------------------------------------------------
 # REGIONAL BOUNDING BOXES
 # ----------------------------------------------------------------
-# 1. Gulf of Mexico (Small, keeps files tiny)
+# 1. Gulf of Mexico
 bbox_gulf <- "--minimum-longitude -98 --maximum-longitude -81 --minimum-latitude 18 --maximum-latitude 31"
 
-# 2. Top Predator / West Coast (Larger area based on your leatherback map)
-# Note: This is a large box (-160W to -110W, 10N to 60N). 
-# If files >100MB, shrinking this is the first thing to try.
+# 2. Top Predator / West Coast (Default)
 bbox_toppred <- "--minimum-longitude -160 --maximum-longitude -110 --minimum-latitude 10 --maximum-latitude 60"
 
 
@@ -60,21 +59,27 @@ tryCatch(
       # 1. Determine Date
       target_date <- if (grepl("obs", x$product, ignore.case = TRUE)) date_obs else date_forecast
       
-      # 2. Determine Filename
-      unique_savename <- glue("{x$product}_{x$model_var_name}_{target_date}")
+      # 2. Determine Filename (Handle NAs)
+      # If model_var_name is missing (NA), use the raw variable name
+      name_tag <- if(is.na(x$model_var_name)) x$variable else x$model_var_name
+      unique_savename <- glue("{x$product}_{name_tag}_{target_date}")
+      
+      # Full path for checking existence
+      outfile_path <- file.path(ncdir_cmems, paste0(unique_savename, ".nc"))
+      
+      # [CRITICAL FIX] Delete file if it exists to prevent _(1) duplicates
+      if (file.exists(outfile_path)) {
+        message(glue("Deleting old file: {unique_savename}.nc"))
+        file.remove(outfile_path)
+      }
       
       message(glue("Downloading {unique_savename} (Date: {target_date})..."))
       
-      # 3. Determine Region (Dynamic Subsetting)
-      # Checks the 'model' column in your CSV
-      subset_cmd <- if (x$model == "Gulf_Model") {
-        bbox_gulf
-      } else {
-        bbox_toppred # Default to Top Predator box for everything else
-      }
+      # 3. Determine Region
+      subset_cmd <- if (x$model == "Gulf_Model") bbox_gulf else bbox_toppred
       
-      # 4. Construct Command
-      cmd <- glue("{tool_path} subset -i {x$product} -v {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} --force-download {subset_cmd}")
+      # 4. Construct Command (Removed --force-download as it's deprecated/ignored)
+      cmd <- glue("{tool_path} subset -i {x$product} -v {x$variable} -t {target_date} -T {target_date} -o {ncdir_cmems} -f {unique_savename} {subset_cmd}")
       
       # Conditionally add depth flags
       if (!is.na(x$depth_min)) {
@@ -88,7 +93,7 @@ tryCatch(
       exit_code <- system(cmd)
       
       if (exit_code != 0) {
-        warning(glue("Download process returned exit code {exit_code} for {unique_savename}. Check if file exists."))
+        warning(glue("Download warning for {unique_savename} (Code {exit_code})"))
       }
     })
     
