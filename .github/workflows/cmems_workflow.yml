@@ -1,237 +1,233 @@
-
-name: CMEMS model workflow
+name: Daily Ocean Predictions
 
 on:
-  # triggered on push to repo
-  # push:
-  #   branches: main
-  # triggered by cron job
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    # https://crontab.cronhub.io
-    - cron:  '30 15 * * *'  #scheduled to run at 3:30 pm UTC every day
-  # triggered by manual activation on GitHub repo website
+  # schedule:
+  # - cron: '30 15 * * *' # 3:30 PM UTC daily
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  # ----------------------------------------------------------------
+  # JOB 1: DOWNLOAD ALL DATA (Surface + Deep)
+  # ----------------------------------------------------------------
   download_cmems:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: |
-          metadata/
-          repo_cleanup/
-          data_acquisition/R/
-          data_acquisition/netcdfs/cmems_ncdfs/placeholder.txt
-        sparse-checkout-cone-mode: false # Set to false for more granular control
-    
-    # - name: Print dir tree
-    #   run: tree
+    # 1. CLEAN SYSTEM BLOAT (Make room for the job)
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
 
-    - name: Install Conda
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Install Conda & Capture Tool Path
       uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        channels: conda-forge,defaults
-        python-version: 3.12
+        python-version: 3.11
+        activate-environment: test
 
-    # - name: Check disk space
-    #   run: |
-    #     df -h
-
-    - name: Install Copernicus Marine Toolbox
+    - name: Install Copernicus Tool
       shell: bash -el {0}
       run: |
-        conda install -c conda-forge copernicusmarine
-        conda install scipy
+        conda install -c conda-forge copernicusmarine scipy
+        # Capture Path for R
+        TOOL_PATH=$(which copernicusmarine)
+        echo "CM_TOOL_PATH=$TOOL_PATH" >> $GITHUB_ENV
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
         r-version: '4.4.3'
 
-    - name: Install R packages
+    - name: Install R Packages
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-    
-    - name: Delete old CMEMS data
-      shell: Rscript {0}
-      run: |
-        source("repo_cleanup/delete_old_files.R")
+        packages: any::readr any::dplyr any::glue any::purrr
 
-    - name: Download CMEMS data
-      env:
-        COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
-        COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+    # 2. CLEAN OLD PROJECT FILES (Your script)
+    - name: Delete Old CMEMS Data
       shell: Rscript {0}
       run: |
-        source("data_acquisition/R/acquire_cmems.R")
-      working-directory: ${{ github.workspace }}
-    
-    - name: Create artifact to share data with next job
+        if (file.exists("repo_cleanup/delete_old_files.R")) {
+          source("repo_cleanup/delete_old_files.R")
+        } else {
+          message("Cleanup script not found, skipping.")
+        }
+
+    - name: Run Download Script
+      shell: Rscript {0}
+      run: source("data_acquisition/R/acquire_cmems.R")
+
+    # Pass the raw NetCDFs to the next jobs
+    - name: Upload Raw Data Artifact
       uses: actions/upload-artifact@v4
       with:
         name: raw_cmems
         path: data_acquisition/netcdfs/cmems_ncdfs/
         retention-days: 1
 
-    - name: Commit and Push Changes
+    - name: Commit New Raw Files
       run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data_acquisition/netcdfs/cmems_ncdfs/
+        git diff --staged --quiet || (git commit -m "Added raw CMEMS files" && git pull --rebase && git push)
 
-        # git fetch origin gh-pages --depth=1
-        # git pull
-        git add --sparse data_acquisition/netcdfs/cmems_ncdfs/*.nc
-        git commit -m 'Added new CMEMS files'
-        
-        #Quickly fetches remote changes and reapplies local commit on top of it
-        git pull --rebase
-        git push
-
+  # ----------------------------------------------------------------
+  # JOB 2: PROCESS STANDARD DATA (Top Predator Watch)
+  # ----------------------------------------------------------------
   process_cmems:
-    runs-on: ubuntu-latest
     needs: download_cmems
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: |
-          metadata/
-          data_processing/R/
-          data_acquisition/netcdfs/cmems_ncdfs/placeholder.txt
-          data_processing/TopPredatorWatch/rasters/placeholder.txt
-          data_processing/TopPredatorWatch/static/
-        sparse-checkout-cone-mode: false # Set to false for more granular control
-
-    - name: Download artifact w raw CMEMS files
-      uses: actions/download-artifact@v5
+    - uses: actions/checkout@v4
+    
+    - name: Download Raw Data
+      uses: actions/download-artifact@v4
       with:
         name: raw_cmems
         path: data_acquisition/netcdfs/cmems_ncdfs/
-    
-    - name: Print dir tree
-      run: tree
-    
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.4.3'
 
-    - name: Install R packages
-      uses: r-lib/actions/setup-r-dependencies@v2
+    - uses: r-lib/actions/setup-r@v2
+      with: { r-version: '4.4.3' }
+      
+    - uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
+        packages: any::terra any::dplyr any::glue any::purrr any::readr any::lubridate
 
-    - name: Process CMEMS netCDFs and created derived vars
+    - name: Run Standard Processing
       shell: Rscript {0}
-      run: |
-        source("data_processing/R/process_cmems.R")
-      working-directory: ${{ github.workspace }}
-    
-    - name: Create artifact to share data with next job
+      run: source("data_processing/R/process_cmems.R")
+
+    # Pass the processed TIFFs to the prediction jobs
+    - name: Upload Processed TIFFs Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: processed_cmems
+        name: processed_tiffs
         path: data_processing/TopPredatorWatch/rasters/
         retention-days: 1
 
-    - name: Commit and Push Changes
+    - name: Commit Processed Files
       run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add data_processing/TopPredatorWatch/rasters/
+        git diff --staged --quiet || (git commit -m "Processed CMEMS files" && git pull --rebase && git push)
 
-        # git fetch origin gh-pages --depth=1
-        # git pull
-        
-        git add --sparse data_processing/TopPredatorWatch/rasters/*.tiff
-        git commit -m 'Processed CMEMS files'
-        
-        #Quickly fetches remote changes and reapplies local commit on top of it
-        git pull --rebase
-        git push
-
-  predict_TopPred:
-    runs-on: ubuntu-latest
+  # ----------------------------------------------------------------
+  # JOB 3: PREDICT TOP PREDATOR (Colleague's Model)
+  # ----------------------------------------------------------------
+  predict_top_pred:
     needs: process_cmems
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v5
-      with:
-        sparse-checkout: |
-          metadata/
-          model_prediction/R/
-          data_processing/TopPredatorWatch/rasters/placeholder.txt
-          model_prediction/TopPredatorWatch/
-        sparse-checkout-cone-mode: true  # Set to false for more granular control
+    - uses: actions/checkout@v4
 
-    # - name: Pull in Latest Changes
-    #   run: |
-    #     git config --global user.name "${{ github.actor }}"
-    #     git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-    # 
-    #     git pull
-
-    - name: List all files in directory before downloading artifact
-      run: |
-        tree
-    
-    - name: Download artifact w processed CMEMS files
-      uses: actions/download-artifact@v5
+    - name: Download Processed TIFFs
+      uses: actions/download-artifact@v4
       with:
-        name: processed_cmems
+        name: processed_tiffs
         path: data_processing/TopPredatorWatch/rasters/
-    
-    - name: Print dir tree
-      run: tree
 
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.4.3'
+    - uses: r-lib/actions/setup-r@v2
+      with: { r-version: '4.4.3' }
 
-    - name: Install R packages
-      uses: r-lib/actions/setup-r-dependencies@v2
+    - uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        extra-packages:
-          ropensci/rnaturalearthhires
+        packages: |
+          any::remotes
+          any::sf
+          any::terra
+          any::tidyverse
+          any::glue
+          any::gbm
+          any::rnaturalearth
+          any::pals
 
-    # - name: Install rnaturalearthhires R package from GitHub
-    #   shell: Rscript {0}
-    #   run: |
-    #     install.packages("remotes")
-    #     remotes::install_github("ropensci/rnaturalearthhires")
-
-    - name: Make predictions for Top Predator Watch
+    - name: Install rnaturalearthhires
       shell: Rscript {0}
+      run: remotes::install_github("ropensci/rnaturalearthhires")
+
+    - name: Run TopPred Prediction
+      shell: Rscript {0}
+      run: source("model_prediction/R/predict_TopPredatorWatch.R")
+
+    - name: Commit TopPred Results
       run: |
-        source("model_prediction/R/predict_TopPredatorWatch.R")
-      working-directory: ${{ github.workspace }}
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add model_prediction/TopPredatorWatch/
+        git diff --staged --quiet || (git commit -m "TopPred predictions" && git pull --rebase && git push)
 
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+  # ----------------------------------------------------------------
+  # JOB 4: PREDICT GULF (Your New Model)
+  # ----------------------------------------------------------------
+  # predict_gulf:
+  #   needs: [download_cmems, process_cmems]
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+  #   steps:
+  #   - uses: actions/checkout@v4
 
-        # git fetch origin gh-pages --depth=1
-        # git pull
-        
-        git add --sparse model_prediction/TopPredatorWatch/*/
-        git commit -m 'Made predictions for Top Predator Watch'
-        
-        #Quickly fetches remote changes and reapplies local commit on top of it
-        git pull --rebase
-        git push
+  #   # Get RAW NetCDFs (for deep variables)
+  #   - name: Download Raw Data
+  #     uses: actions/download-artifact@v4
+  #     with:
+  #       name: raw_cmems
+  #       path: data_acquisition/netcdfs/cmems_ncdfs/
 
+  #   # Get PROCESSED TIFFs (for surface variables)
+  #   - name: Download Processed Data
+  #     uses: actions/download-artifact@v4
+  #     with:
+  #       name: processed_tiffs
+  #       path: data_processing/TopPredatorWatch/rasters/
+
+  #   - uses: r-lib/actions/setup-r@v2
+  #     with: { r-version: '4.4.3' }
+
+  #   - uses: r-lib/actions/setup-r-dependencies@v2
+  #     with:
+  #       cache: always
+  #       packages: |
+  #         any::tidysdm
+  #         any::tidyverse
+  #         any::sf
+  #         any::terra
+  #         any::lubridate
+  #         any::oce
+  #         any::grec
+  #         any::bundle
+  #         any::xgboost
+  #         any::ranger
+  #         any::mgcv
+  #         any::glue
+
+  #   - name: Run Gulf Prediction
+  #     shell: Rscript {0}
+  #     run: source("model_prediction/R/predict_gulf.R")
+
+  #   - name: Commit Gulf Results
+  #     run: |
+  #       git config --global user.name "GitHub Actions"
+  #       git config --global user.email "actions@github.com"
+  #       git add app/data/latest_predictions.rds
+  #       git diff --staged --quiet || (git commit -m "Gulf predictions" && git pull --rebase && git push)
