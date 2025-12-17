@@ -2,10 +2,15 @@ Package: CEG_operationalization
 Title: Cyberinfrastructure for Tool Operationalization
 Version: 0.1
 Authors@R: 
-    person(
-    "Josh", "Cullen", "josh.cullen@noaa.gov",
-    role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6935-9340"))
+    c(person(given = "Josh", 
+             family = "Cullen", 
+             email = "josh.cullen@noaa.gov", 
+             role = c("aut", "cre"), 
+             comment = c(ORCID = "0000-0002-6935-9340")),
+      person(given = "Sarah", 
+             family = "Roberts", 
+             email = "sarah.roberts@noaa.gov", 
+             role = "aut"))
 Description: This code provides cyberinfrastructure to automate operational tools related to species distribution models of marine megafauna.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -33,4 +38,14 @@ Imports:
     leafem,
     cmocean,
     jsonlite,
-    shiny
+    shiny,
+    tidysdm,
+    oce,
+    grec,
+    bundle,
+    xgboost,
+    ranger,
+    mgcv,
+    gh
+Remotes:
+    ropensci/rnaturalearthhires
