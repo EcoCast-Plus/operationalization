@@ -49,11 +49,11 @@ jobs:
       with:
         r-version: '4.4.3'
 
+    # [FIX] This now reads your DESCRIPTION file automatically!
     - name: Install R Packages
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        extra-packages: any::rcmdcheck
         
     # 2. CLEAN OLD PROJECT FILES (Your script)
     - name: Delete Old CMEMS Data
@@ -151,9 +151,7 @@ jobs:
       with:
         cache: always
 
-    - name: Install rnaturalearthhires
-      shell: Rscript {0}
-      run: remotes::install_github("ropensci/rnaturalearthhires")
+    # Note: 'Remotes' in DESCRIPTION file handles rnaturalearthhires install now!
 
     - name: Run TopPred Prediction
       shell: Rscript {0}
@@ -197,19 +195,6 @@ jobs:
   #   - uses: r-lib/actions/setup-r-dependencies@v2
   #     with:
   #       cache: always
-  #       packages: |
-  #         any::tidysdm
-  #         any::tidyverse
-  #         any::sf
-  #         any::terra
-  #         any::lubridate
-  #         any::oce
-  #         any::grec
-  #         any::bundle
-  #         any::xgboost
-  #         any::ranger
-  #         any::mgcv
-  #         any::glue
 
   #   - name: Run Gulf Prediction
   #     shell: Rscript {0}
