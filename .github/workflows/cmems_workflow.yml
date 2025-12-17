@@ -58,8 +58,11 @@ jobs:
           any::dplyr 
           any::glue 
           any::purrr 
-          any::httr
-          any::gh
+          any::httr       # Required for GitHub API calls
+          any::jsonlite   # Required for parsing API response
+          any::lubridate  # Required for date math
+          any::stringr    # Required for regex
+          any::gh         # Good practice for GH interactions
 
     # 2. CLEAN OLD PROJECT FILES (Your script)
     - name: Delete Old CMEMS Data
