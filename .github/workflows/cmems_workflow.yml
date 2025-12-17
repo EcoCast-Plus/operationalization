@@ -53,7 +53,13 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        packages: any::readr any::dplyr any::glue any::purrr
+        packages: |
+          any::readr 
+          any::dplyr 
+          any::glue 
+          any::purrr 
+          any::httr
+          any::gh
 
     # 2. CLEAN OLD PROJECT FILES (Your script)
     - name: Delete Old CMEMS Data
