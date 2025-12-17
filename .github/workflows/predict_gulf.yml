@@ -14,22 +14,19 @@ permissions:
 
 jobs:
   predict-gulf:
-    # Use 22.04 for fast R binary installation
     runs-on: ubuntu-22.04
-    # Only run if the processing job succeeded
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # [CRITICAL FIX] Allow running if triggered automatically (success) OR manually (dispatch)
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-    # 1. Clean Disk Space (Always critical)
     - name: Free Disk Space
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
 
-    # 2. Checkout (Fetch depth 0 ensures we get the files committed by previous jobs)
     - name: Check out repository
       uses: actions/checkout@v4
       with:
@@ -40,34 +37,27 @@ jobs:
       with:
         r-version: '4.4.3'
 
-    # 3. Install Packages (Reads your DESCRIPTION file automatically)
     - name: Install Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
 
-    # 4. Run the Prediction Script
     - name: Run Gulf Predictions
       shell: Rscript {0}
       run: source("model_prediction/R/predict_gulf.R")
       working-directory: ${{ github.workspace }}
 
-    # 5. Save Results
     - name: Commit and Push Results
       run: |
         git config --global user.name "${{ github.actor }}"
         git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-        # Only add the prediction output file
         git add app/data/latest_predictions.rds
 
-        # Safety Check: Only push if the file actually changed
         if git diff --staged --quiet; then
           echo "No new predictions generated to commit."
         else
           git commit -m "Gulf predictions update"
-          
-          # CRITICAL: Pull changes from the previous jobs before pushing
           git pull origin main --rebase
           git push origin main
         fi
