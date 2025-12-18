@@ -18,24 +18,19 @@ jobs:
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: '4.3.3' # Using a slightly older R version often helps with compat
+        r-version: '4.3.3' # Slightly older R version improves binary compatibility for 1.7.x
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev libnetcdf-dev libudunits2-dev
 
-    # [CRITICAL FIX] Install specific XGBoost version FIRST
-    - name: Install XGBoost 1.7.7.1
-      run: |
-        Rscript -e "install.packages('remotes')"
-        Rscript -e "remotes::install_version('xgboost', version = '1.7.7.1', repos = 'https://cloud.r-project.org')"
-
+    # 1. Install standard dependencies (except xgboost/stacks which we handle manually)
     - name: Install R Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 3
+        cache-version: 4
         packages: |
           any::dplyr
           any::glue
@@ -46,11 +41,22 @@ jobs:
           any::ranger
           any::mgcv
           any::oce
-          any::stacks
           any::tidymodels
           any::workflows
-          any::tidysdm
           any::parsnip
+          any::remotes
+
+    # 2. [CRITICAL FIX] Force-install the exact XGBoost version from your local machine
+    - name: Force Compatible Model Packages
+      run: |
+        # Force install XGBoost 1.7.8.1 (Legacy Engine)
+        Rscript -e "remotes::install_version('xgboost', version = '1.7.8.1', repos = 'https://cloud.r-project.org')"
+        
+        # Install stacks and tidysdm AFTER xgboost so they link to the correct version
+        Rscript -e "install.packages(c('stacks', 'tidysdm'))"
+        
+        # Print versions to debug log (Verifies the fix)
+        Rscript -e "packageVersion('xgboost'); packageVersion('stacks')"
 
     - name: Run Prediction Script
       run: Rscript model_prediction/R/predict_gulf.R
