@@ -1,78 +1,235 @@
-name: Predict Gulf of Mexico
+# Predict Gulf of Mexico - Exact Shiny App Replication
 
-on:
-  # Triggered automatically after Processing finishes
-  workflow_run:
-    workflows: ["Process CMEMS data"]
-    types:
-      - completed
-  # Allow manual trigger for testing
-  workflow_dispatch:
+# --- 1. Load Libraries ---
+library(terra)
+library(sf)
+library(dplyr)
+library(glue)
+library(lubridate)
+library(bundle)
+library(xgboost)
+library(ranger)
+library(mgcv)
+library(oce)
+library(stacks)      # Required for ensemble models
+library(tidymodels)  # Required for recipes/workflows
+library(workflows)   # Required to extract variable names
 
-permissions:
-  contents: write
+# --- 2. Define Directories ---
+models_dir <- "model_prediction/gulf/results"
+preds_dir  <- "model_prediction/gulf/predictions"
+if (!dir.exists(preds_dir)) dir.create(preds_dir, recursive = TRUE)
 
-jobs:
-  predict-gulf:
-    runs-on: ubuntu-22.04
-    # [CRITICAL FIX] Allow running if triggered automatically (success) OR manually (dispatch)
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+raw_dir    <- "data_acquisition/netcdfs/cmems_ncdfs"
+static_dir <- "model_prediction/gulf/data"
 
-    steps:
-    - name: Free Disk Space
-      run: |
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/ghc
+# --- 3. Date Logic ---
+date_forecast <- Sys.Date() + 1
+date_obs      <- Sys.Date() - 1
 
-    - name: Check out repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.4.3'
+# ----------------------------------------------------------------
+# HELPER: Smart File Finder
+# ----------------------------------------------------------------
+find_file <- function(var_name, search_dir) {
+  target_date <- date_forecast
+  obs_vars <- c("l.chl", "sla", "sst", "mld", "analysed_sst", "ugosa", "vgosa")
+  if (var_name %in% obs_vars) target_date <- date_obs
+  
+  pattern <- glue("_{var_name}_{target_date}")
+  files <- list.files(search_dir, pattern = pattern, full.names = TRUE)
+  
+  if (length(files) == 0) stop(glue("MISSING FILE: {var_name} for {target_date}"))
+  return(files[1])
+}
 
-    - name: Install R Dependencies
-      uses: r-lib/actions/setup-r-dependencies@v2
-      with:
-        cache: always
-        cache-version: 2
-        packages: |
-          any::dplyr
-          any::glue
-          any::lubridate
-          any::terra
-          any::sf
-          any::bundle
-          any::xgboost
-          any::ranger
-          any::mgcv
-          any::oce
-          any::stacks
-          any::tidymodels
+# ----------------------------------------------------------------
+# 4. LOAD & PROCESS ENVIRONMENTAL DATA
+# ----------------------------------------------------------------
+message("Loading Dynamic Environmental Data...")
 
-    - name: Run Gulf Predictions
-      shell: Rscript {0}
-      run: source("model_prediction/R/predict_gulf.R")
-      working-directory: ${{ github.workspace }}
+load_layer <- function(var_name, nc_var) {
+  r <- rast(find_file(var_name, raw_dir))[nc_var]
+  return(r[[1]]) 
+}
 
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+r_sst        <- load_layer("thetao", "thetao") 
+r_ssh        <- load_layer("ssh", "zos")
+r_chl        <- load_layer("l.chl", "CHL")
+r_uo         <- load_layer("uo", "uo")
+r_vo         <- load_layer("vo", "vo")
+r_bottom_t   <- load_layer("bottom_t", "tob")
+r_thetao_150 <- load_layer("thetao_150m", "thetao")
+r_thetao_500 <- load_layer("thetao_500m", "thetao")
+
+master_grid <- r_sst
+
+message("Calculating Derived Variables (EKE, TKE)...")
+r_eke <- 0.5 * (r_uo^2 + r_vo^2); names(r_eke) <- "eke"
+r_tke <- 0.5 * (r_uo^2 + r_vo^2); names(r_tke) <- "tke"
+
+env_stack_dynamic <- c(
+  r_sst, 
+  resample(r_chl, master_grid, method="bilinear"),
+  resample(r_ssh, master_grid, method="bilinear"),
+  resample(r_bottom_t, master_grid, method="bilinear"),
+  resample(r_thetao_150, master_grid, method="bilinear"),
+  resample(r_thetao_500, master_grid, method="bilinear"),
+  resample(r_eke, master_grid, method="bilinear"),
+  resample(r_tke, master_grid, method="bilinear")
+)
+names(env_stack_dynamic) <- c("thetao", "chl", "zos", "bottom_t", "thetao_150m", "thetao_500m", "eke", "tke")
+
+# ----------------------------------------------------------------
+# 5. LOAD/GENERATE STATIC VARIABLES
+# ----------------------------------------------------------------
+message("Loading Static Variables...")
+
+if(file.exists(file.path(static_dir, "bathymetry.tif"))) {
+  r_depth <- rast(file.path(static_dir, "bathymetry.tif"))
+  r_shore <- rast(file.path(static_dir, "DfromShore.tif"))
+  
+  r_depth <- resample(r_depth, master_grid, method="bilinear"); names(r_depth) <- "depth"
+  r_shore <- resample(r_shore, master_grid, method="bilinear"); names(r_shore) <- "dfrom_shore"
+} else {
+  stop("Static files (bathymetry.tif, DfromShore.tif) missing in model_prediction/gulf/data/")
+}
+
+# [FIX] Use constant value for striparea (matches Shiny App override)
+r_striparea <- master_grid * 0 + 1876712
+names(r_striparea) <- "striparea"
+
+# Climatology
+target_doy <- yday(date_forecast)
+sst_clim_file <- list.files(static_dir, pattern = "sst_daily_climatology", full.names = TRUE)[1]
+if (!is.na(sst_clim_file)) {
+  r_sst_clim_res <- resample(rast(sst_clim_file), master_grid, method="bilinear")
+  r_sst_anomaly <- if(target_doy <= nlyr(r_sst_clim_res)) r_sst - r_sst_clim_res[[target_doy]] else r_sst * 0
+} else { r_sst_anomaly <- r_sst * 0 }
+names(r_sst_anomaly) <- "sst_anomaly"
+
+ssh_clim_file <- list.files(static_dir, pattern = "ssh_daily_climatology", full.names = TRUE)[1]
+if (!is.na(ssh_clim_file)) {
+  r_ssh_clim_res <- resample(rast(ssh_clim_file), master_grid, method="bilinear")
+  r_ssh_anomaly <- if(target_doy <= nlyr(r_ssh_clim_res)) r_ssh - r_ssh_clim_res[[target_doy]] else r_ssh * 0
+} else { r_ssh_anomaly <- r_ssh * 0 }
+names(r_ssh_anomaly) <- "ssh_anomaly"
+
+# Time Variables
+r_month <- master_grid * 0 + as.integer(month(date_forecast)); names(r_month) <- "month"
+r_doy   <- master_grid * 0 + as.integer(yday(date_forecast));  names(r_doy)   <- "doy"
+
+# Moon Angle
+coords <- as.data.frame(master_grid, xy=TRUE)[, c("x", "y")]
+moon_vals <- oce::moonAngle(t = date_forecast, longitude = coords$x, latitude = coords$y)$illuminatedFraction
+r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle"
+
+# Placeholders & Fronts
+r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
+r_hooks_rule  <- master_grid * 0 + 1; names(r_hooks_rule) <- "hooks_rule" 
+
+# Combine ALL Variables
+full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
+
+pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+
+# [CRITICAL FIX] Add 'Front_Z' (capitalized) for models that expect it
+pred_df$Front_Z <- pred_df$front_z
+
+if(nrow(pred_df) == 0) stop("Error: Environment stack resulted in 0 valid pixels.")
+
+# ----------------------------------------------------------------
+# 6. DEFINE OPERATIONAL AVERAGES
+# ----------------------------------------------------------------
+inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
+inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_duration = 8, day_hours = 7, night_hours = 1)
+
+# ----------------------------------------------------------------
+# 7. PREDICTION LOOP
+# ----------------------------------------------------------------
+model_files <- list.files(models_dir, pattern = "\\.rds$", full.names = TRUE)
+message(glue("Found {length(model_files)} models. Starting predictions..."))
+
+for (m_file in model_files) {
+  model_name <- basename(m_file)
+  message(glue("Processing: {model_name}"))
+  
+  is_swordfish_target <- grepl("Swordfish_Target", model_name)
+  is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
+  is_manta            <- grepl("MANTA_RAY", model_name)
+  
+  # Reset current_df
+  current_df <- pred_df
+  
+  if (is_swordfish_target) {
+    for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
+  } else if (is_yellowfin_target) {
+    for (var in names(inputs_yellowfin)) current_df[[var]] <- inputs_yellowfin[[var]]
+  }
+  
+  tryCatch({
+    model_bundled <- readRDS(m_file)
+    model_obj     <- bundle::unbundle(model_bundled)
+    
+    preds <- NULL
+    
+    if (is_manta) {
+      # --- MANTA RAY (GAM) ---
+      # Just remove coordinates
+      preds <- predict(model_obj, newdata = current_df %>% select(-x, -y), type = "response")
+      preds <- as.numeric(preds)
+      
+    } else {
+      # --- FISHERY MODELS (STACKS) ---
+      # [CRITICAL FIX] Replicate Shiny App logic: Extract recipe and select ONLY needed columns.
+      # This prevents the "as_booster" error by ensuring no extra garbage columns are passed.
+      
+      tryCatch({
+        first_member_workflow <- model_obj$member_fits[[1]]
+        recipe_obj <- workflows::extract_recipe(first_member_workflow)
         
-        # Add the NEW predictions folder
-        git add model_prediction/gulf/predictions/
+        # Get list of predictors from the recipe
+        model_predictors <- recipe_obj$var_info %>%
+          dplyr::filter(role == "predictor") %>%
+          dplyr::pull(variable) %>% 
+          unique() %>% 
+          gsub("_X[0-9]+$", "", .) # Remove any dummy var suffixes if present
         
-        if git diff --staged --quiet; then
-          echo "No changes to commit."
-        else
-          git commit -m "Update Gulf Predictions"
-          git pull origin main --rebase
-          git push origin main
-        fi
+        # Filter dataframe to ONLY these columns
+        # (Using any_of allows for slight mismatches, but strictly we want match)
+        clean_df <- current_df %>% 
+          dplyr::select(dplyr::any_of(model_predictors))
+        
+        # Predict on cleaned data
+        preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
+        preds <- as.numeric(preds_prob$.pred_presence)
+        
+      }, error = function(e_inner) {
+        # Fallback if recipe extraction fails (rare)
+        message(glue("    -> Recipe extraction failed ({e_inner$message}), trying raw predict..."))
+        preds_prob <- predict(model_obj, new_data = current_df %>% select(-x, -y), type = "prob")
+        preds <- as.numeric(preds_prob$.pred_presence)
+      })
+    }
+    
+    # Save Raster
+    if (!is.null(preds)) {
+      r_out <- master_grid
+      values(r_out) <- NA
+      r_out[cellFromXY(r_out, current_df[,c("x","y")])] <- preds
+      names(r_out) <- gsub(".rds", "", model_name)
+      
+      save_name <- paste0("PRED_", date_forecast, "_", gsub(".rds", ".tif", model_name))
+      save_path <- file.path(preds_dir, save_name)
+      
+      writeRaster(r_out, save_path, overwrite = TRUE)
+      message(glue("  -> Saved to {save_name}"))
+    }
+    
+  }, error = function(e) {
+    message(glue("  -> ERROR predicting {model_name}: {e$message}"))
+  })
+}
+
+message("All predictions completed.")
