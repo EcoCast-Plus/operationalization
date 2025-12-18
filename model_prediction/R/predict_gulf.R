@@ -1,22 +1,19 @@
-# Predict Gulf of Mexico - Added Missing Library tidysdm
+# Predict Gulf of Mexico - Clean Namespace Version
 
-# --- 1. Load Libraries ---
+# --- 1. Load Core Libraries ONLY ---
+# We do NOT load xgboost, ranger, or mgcv explicitly.
+# We let 'bundle' and 'tidymodels' load them internally to avoid S3 conflicts.
 library(terra)
 library(sf)
 library(dplyr)
 library(glue)
 library(lubridate)
 library(bundle)
-library(xgboost)
-library(ranger)
-library(mgcv)
-library(oce)
 library(stacks)
 library(tidymodels)
 library(workflows)
-# [CRITICAL FIX] Load tidysdm because models were trained with it
-# This provides the necessary method dispatch for the ensembles
-library(tidysdm) 
+library(tidysdm) # Required for model spec definitions
+library(oce)     # For moon angle
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -72,6 +69,7 @@ load_raw <- function(var_name, nc_var) {
   return(r[[1]]) 
 }
 
+# Load Raw Layers
 r_sst        <- load_raw("thetao", "thetao") 
 master_grid  <- r_sst 
 
@@ -160,7 +158,7 @@ full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_f
 
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
 
-# [CRITICAL] Match Data Types to Shiny App
+# Match Data Types to Shiny App (Integer for discrete vars)
 pred_df$hooks_rule <- as.integer(pred_df$hooks_rule)
 pred_df$doy        <- as.integer(pred_df$doy)
 pred_df$month      <- as.integer(pred_df$month)
@@ -178,7 +176,6 @@ if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
 # ----------------------------------------------------------------
 # 6. PREDICTION LOOP
 # ----------------------------------------------------------------
-# Exact predictors from your training code (including uo, vo, hooks_rule)
 fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
@@ -200,7 +197,6 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
-  # Reset dataframe
   current_df <- pred_df
   
   if (is_swordfish_target) {
@@ -216,15 +212,15 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
-      # Manta is a GAM, handles itself well with aliases
+      # Manta Ray (GAM)
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
       # Fishery Models (Ensemble)
-      # 1. Filter to exact predictors to avoid confusion
+      # 1. Filter to exact predictors
       clean_df <- current_df %>% dplyr::select(dplyr::all_of(fishery_predictors))
       
-      # 2. Predict (now with tidysdm loaded, this should dispatch correctly)
+      # 2. Predict (Standard Stacks Dispatch)
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
