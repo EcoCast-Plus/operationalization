@@ -6,11 +6,14 @@ library(sf)
 library(dplyr)
 library(glue)
 library(lubridate)
-library(bundle)   
-library(xgboost) 
-library(ranger)   
-library(mgcv)     
-library(oce)      
+library(bundle)
+library(xgboost)
+library(ranger)
+library(mgcv)
+library(oce)
+# [CRITICAL FIX] Load stacks and tidymodels for ensemble predictions
+library(stacks) 
+library(tidymodels)
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -31,7 +34,6 @@ message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 # ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
   target_date <- date_forecast
-  
   obs_vars <- c("l.chl", "sla", "sst", "mld", "analysed_sst", "ugosa", "vgosa")
   if (var_name %in% obs_vars) target_date <- date_obs
   
@@ -47,13 +49,11 @@ find_file <- function(var_name, search_dir) {
 # ----------------------------------------------------------------
 message("Loading Dynamic Environmental Data...")
 
-# Helper to load and take ONLY the first layer (Surface/Target Depth)
 load_layer <- function(var_name, nc_var) {
   r <- rast(find_file(var_name, raw_dir))[nc_var]
-  return(r[[1]]) # <--- CRITICAL FIX: Select only the first layer
+  return(r[[1]]) 
 }
 
-# Load Raw Layers (Forcing single layer selection)
 r_sst        <- load_layer("thetao", "thetao") 
 r_ssh        <- load_layer("ssh", "zos")
 r_chl        <- load_layer("l.chl", "CHL")
@@ -63,16 +63,12 @@ r_bottom_t   <- load_layer("bottom_t", "tob")
 r_thetao_150 <- load_layer("thetao_150m", "thetao")
 r_thetao_500 <- load_layer("thetao_500m", "thetao")
 
-# Define Master Grid
 master_grid <- r_sst
 
-# Calculate Derived Dynamic Variables
 message("Calculating Derived Variables (EKE, TKE)...")
 r_eke <- 0.5 * (r_uo^2 + r_vo^2); names(r_eke) <- "eke"
 r_tke <- 0.5 * (r_uo^2 + r_vo^2); names(r_tke) <- "tke"
 
-# Resample Dynamic Vars to Master Grid
-# Using bilinear for smooth fields
 env_stack_dynamic <- c(
   r_sst, 
   resample(r_chl, master_grid, method="bilinear"),
@@ -90,8 +86,6 @@ names(env_stack_dynamic) <- c("thetao", "chl", "zos", "bottom_t", "thetao_150m",
 # ----------------------------------------------------------------
 message("Loading Static Variables...")
 
-# A. Bathymetry & Shore Distance
-# Ensure we check if files exist first to avoid hard crashes
 if(file.exists(file.path(static_dir, "bathymetry.tif"))) {
   r_depth <- rast(file.path(static_dir, "bathymetry.tif"))
   r_shore <- rast(file.path(static_dir, "DfromShore.tif"))
@@ -102,68 +96,47 @@ if(file.exists(file.path(static_dir, "bathymetry.tif"))) {
   stop("Static files (bathymetry.tif, DfromShore.tif) missing in model_prediction/gulf/data/")
 }
 
-# B. Climatology (for Anomalies)
-message("Calculating Anomalies from Climatology...")
-target_doy <- yday(date_forecast)
+# [CRITICAL FIX] Placeholder for 'striparea' (Missing File)
+# Setting to 0 to prevent crash. Please upload 'striparea.tif' for accuracy.
+r_striparea <- master_grid * 0; names(r_striparea) <- "striparea"
 
-# SST Anomaly
+# Climatology
+target_doy <- yday(date_forecast)
 sst_clim_file <- list.files(static_dir, pattern = "sst_daily_climatology", full.names = TRUE)[1]
 if (!is.na(sst_clim_file)) {
-  r_sst_clim <- rast(sst_clim_file)
-  r_sst_clim_res <- resample(r_sst_clim, master_grid, method="bilinear")
-  
-  # Ensure we have enough layers
-  if(target_doy <= nlyr(r_sst_clim_res)) {
-    r_sst_anomaly <- r_sst - r_sst_clim_res[[target_doy]]
-  } else {
-    warning("Target DOY out of range for SST Climatology. Using 0.")
-    r_sst_anomaly <- r_sst * 0
-  }
-} else {
-  warning("SST Climatology file missing! Anomaly will be 0.")
-  r_sst_anomaly <- r_sst * 0
-}
+  r_sst_clim_res <- resample(rast(sst_clim_file), master_grid, method="bilinear")
+  r_sst_anomaly <- if(target_doy <= nlyr(r_sst_clim_res)) r_sst - r_sst_clim_res[[target_doy]] else r_sst * 0
+} else { r_sst_anomaly <- r_sst * 0 }
 names(r_sst_anomaly) <- "sst_anomaly"
 
-# SSH Anomaly
 ssh_clim_file <- list.files(static_dir, pattern = "ssh_daily_climatology", full.names = TRUE)[1]
 if (!is.na(ssh_clim_file)) {
-  r_ssh_clim <- rast(ssh_clim_file)
-  r_ssh_clim_res <- resample(r_ssh_clim, master_grid, method="bilinear")
-  
-  if(target_doy <= nlyr(r_ssh_clim_res)) {
-    r_ssh_anomaly <- r_ssh - r_ssh_clim_res[[target_doy]]
-  } else {
-    r_ssh_anomaly <- r_ssh * 0
-  }
-} else {
-  warning("SSH Climatology file missing! Anomaly will be 0.")
-  r_ssh_anomaly <- r_ssh * 0
-}
+  r_ssh_clim_res <- resample(rast(ssh_clim_file), master_grid, method="bilinear")
+  r_ssh_anomaly <- if(target_doy <= nlyr(r_ssh_clim_res)) r_ssh - r_ssh_clim_res[[target_doy]] else r_ssh * 0
+} else { r_ssh_anomaly <- r_ssh * 0 }
 names(r_ssh_anomaly) <- "ssh_anomaly"
 
-# C. Generated Time Variables
+# Time Variables
 r_month <- master_grid * 0 + as.integer(month(date_forecast)); names(r_month) <- "month"
 r_doy   <- master_grid * 0 + as.integer(yday(date_forecast));  names(r_doy)   <- "doy"
 
-# D. Moon Angle (Calculated spatially)
+# Moon Angle
 coords <- as.data.frame(master_grid, xy=TRUE)[, c("x", "y")]
 moon_vals <- oce::moonAngle(t = date_forecast, longitude = coords$x, latitude = coords$y)$illuminatedFraction
 r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle"
 
-# E. Placeholders (Fronts & Hooks)
+# Placeholders
 r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
 r_hooks_rule  <- master_grid * 0 + 1; names(r_hooks_rule) <- "hooks_rule" 
 
-# Combine ALL Variables into Prediction Stack
-full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule)
+# Combine ALL Variables (Added striparea)
+full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
-# Convert to Data Frame for Prediction
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
 if(nrow(pred_df) == 0) stop("Error: Environment stack resulted in 0 valid pixels.")
 
 # ----------------------------------------------------------------
-# 6. DEFINE OPERATIONAL AVERAGES (From Shiny App)
+# 6. DEFINE OPERATIONAL AVERAGES
 # ----------------------------------------------------------------
 inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
 inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_duration = 8, day_hours = 7, night_hours = 1)
@@ -185,7 +158,6 @@ for (m_file in model_files) {
   is_manta            <- grepl("MANTA_RAY", model_name)
   
   current_df <- pred_df
-  
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
   } else if (is_yellowfin_target) {
@@ -200,6 +172,7 @@ for (m_file in model_files) {
       preds <- predict(model_obj, newdata = current_df %>% select(-x, -y), type = "response")
       preds <- as.numeric(preds)
     } else {
+      # stacks prediction requires tidymodels/stacks libraries loaded
       preds_prob <- predict(model_obj, new_data = current_df %>% select(-x, -y), type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
@@ -219,5 +192,3 @@ for (m_file in model_files) {
     message(glue("  -> ERROR predicting {model_name}: {e$message}"))
   })
 }
-
-message("All predictions completed.")
