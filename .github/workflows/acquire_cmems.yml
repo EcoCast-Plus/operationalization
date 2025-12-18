@@ -8,22 +8,17 @@ permissions:
 
 jobs:
   acquire-cmems:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04 # 22.04 is stable and fast for R
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
     steps:
-    # --- [NEW STEP] FREE UP DISK SPACE ---
-    # This deletes Android SDKs, .NET, and Haskell to make room for your data
-    - name: Free Disk Space (Ubuntu)
+    - name: Free Disk Space
       run: |
-        echo "Disk space before cleanup:"
-        df -h
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        echo "Disk space after cleanup:"
-        df -h
 
     - name: Check out repository
       uses: actions/checkout@v4
@@ -40,39 +35,37 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
         activate-environment: test
-        # Add this to clean up conda cache and save more space
-        clean-patched-environment-file: true 
 
-    - name: Install Copernicus Marine Toolbox
+    - name: Install Copernicus Tool
       shell: bash -el {0}
       run: |
         conda install -c conda-forge copernicusmarine scipy
-        # Clean conda cache to save space
-        conda clean --all --yes
-        
-        # Capture Path
+        # Capture Path for R
         TOOL_PATH=$(which copernicusmarine)
-        echo "Found copernicusmarine at: $TOOL_PATH"
         echo "CM_TOOL_PATH=$TOOL_PATH" >> $GITHUB_ENV
 
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: '4.3.3'
+        r-version: '4.4.3'
 
-    - name: Install R packages
+    # [CRITICAL FIX] Install ONLY what is needed for downloading
+    - name: Install R Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
-        cache-version: 4
+        cache: always
+        # Force a new cache key just in case
+        cache-version: 2
+        packages: |
+          any::dplyr
+          any::readr
+          any::purrr
+          any::glue
+          any::lubridate
 
-    - name: Download CMEMS data
-      env:
-        COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
-        COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+    - name: Run Download Script
       shell: Rscript {0}
-      run: |
-        source("data_acquisition/R/acquire_cmems.R")
-      working-directory: ${{ github.workspace }}
+      run: source("data_acquisition/R/acquire_cmems.R")
 
     - name: Commit and Push Changes
       run: |
@@ -81,7 +74,6 @@ jobs:
 
         git add .
         
-        # Check if there are changes before committing
         if git diff --staged --quiet; then
           echo "No changes to commit."
         else
