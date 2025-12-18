@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Robust Version
+# Predict Gulf of Mexico - Final Fix for Factors and Aliases
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -13,6 +13,7 @@ library(mgcv)
 library(oce)
 library(stacks)
 library(tidymodels)
+library(workflows)
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -61,6 +62,8 @@ r_vo         <- load_layer("vo", "vo")
 r_bottom_t   <- load_layer("bottom_t", "tob")
 r_thetao_150 <- load_layer("thetao_150m", "thetao")
 r_thetao_500 <- load_layer("thetao_500m", "thetao")
+r_mld        <- load_layer("mld", "mlotst")
+r_so         <- load_layer("so", "so")
 
 master_grid <- r_sst
 
@@ -76,9 +79,12 @@ env_stack_dynamic <- c(
   resample(r_thetao_150, master_grid, method="bilinear"),
   resample(r_thetao_500, master_grid, method="bilinear"),
   resample(r_eke, master_grid, method="bilinear"),
-  resample(r_tke, master_grid, method="bilinear")
+  resample(r_tke, master_grid, method="bilinear"),
+  resample(r_mld, master_grid, method="bilinear"),
+  resample(r_so, master_grid, method="bilinear")
 )
-names(env_stack_dynamic) <- c("thetao", "chl", "zos", "bottom_t", "thetao_150m", "thetao_500m", "eke", "tke")
+# Match names to training data
+names(env_stack_dynamic) <- c("thetao", "chl", "zos", "bottom_t", "thetao_150m", "thetao_500m", "eke", "tke", "mlotst", "so")
 
 # ----------------------------------------------------------------
 # 5. LOAD/GENERATE STATIC VARIABLES
@@ -133,34 +139,25 @@ full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_f
 
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
 
-# [FIX] Add Aliases for Models with Different Naming Conventions
-pred_df$SST     <- pred_df$thetao
-pred_df$SSH     <- pred_df$zos
-pred_df$Front_Z <- pred_df$front_z
-pred_df$Depth   <- pred_df$depth
-
 if(nrow(pred_df) == 0) stop("Error: Environment stack resulted in 0 valid pixels.")
 
 # ----------------------------------------------------------------
-# 6. HARDCODED MODEL PREDICTORS (Bypasses buggy extraction)
+# 6. DEFINE PREDICTOR LIST & ALIASES
 # ----------------------------------------------------------------
-# This list is based on your Shiny app metadata
+# Standard Fishery Predictors (must match training exactly)
 fishery_predictors <- c(
-  "thetao", "so", "zos", "bottom_t", "mlotst", "uo", "vo", "chl", 
-  "sst_anomaly", "ssh_anomaly", "depth", "dfrom_shore", "front_z", 
-  "thetao_150m", "thetao_500m", "tke", "eke", "moon_angle", "month", 
-  "doy", "hooks_rule", "number_light_sticks", "number_of_floats", 
-  "soak_duration", "day_hours", "night_hours"
+  "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
+  "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
+  "tke", "thetao_150m", "thetao_500m", "day_hours", "night_hours", 
+  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
 )
 
-# ----------------------------------------------------------------
-# 7. DEFINE OPERATIONAL AVERAGES
-# ----------------------------------------------------------------
+# Operational Defaults
 inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
 inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_duration = 8, day_hours = 7, night_hours = 1)
 
 # ----------------------------------------------------------------
-# 8. PREDICTION LOOP
+# 7. PREDICTION LOOP
 # ----------------------------------------------------------------
 model_files <- list.files(models_dir, pattern = "\\.rds$", full.names = TRUE)
 message(glue("Found {length(model_files)} models. Starting predictions..."))
@@ -173,7 +170,13 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
+  # Reset dataframe
   current_df <- pred_df
+  
+  # [CRITICAL FIX] Convert hooks_rule to FACTOR
+  # The training code used 'step_mutate(hooks_rule = as.factor(hooks_rule))'.
+  # The recipe expects a factor input to perform dummy encoding correctly.
+  current_df$hooks_rule <- as.factor(current_df$hooks_rule)
   
   # Add Operational Inputs
   if (is_swordfish_target) {
@@ -189,20 +192,25 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
-      # Manta Ray (GAM) uses standard predict
-      # Ensure 'SST', 'Front_Z' etc. are present (handled by aliases above)
-      preds <- predict(model_obj, newdata = current_df %>% select(-x, -y), type = "response")
+      # --- MANTA RAY FIX ---
+      # Add the specific Capitalized Aliases this GAM expects
+      current_df$ChlA       <- current_df$chl
+      current_df$SST        <- current_df$thetao
+      current_df$Front_Z    <- current_df$front_z
+      current_df$DfromShore <- current_df$dfrom_shore
+      
+      # Predict (response type for GAM)
+      preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
       
     } else {
-      # FISHERY MODELS (STACKS)
-      # 1. Filter Dataframe to KNOWN predictors to prevent "as_booster" error
-      #    (The error happens when extra/unnecessary columns confuse the ensemble)
-      
+      # --- FISHERY MODELS FIX ---
+      # 1. Filter to exact predictors to remove garbage columns
       clean_df <- current_df %>% 
         dplyr::select(dplyr::any_of(fishery_predictors))
       
-      # 2. Predict
+      # 2. Predict (prob type for Ensemble)
+      # The dataframe now has 'hooks_rule' as a Factor, preventing the Booster error
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
