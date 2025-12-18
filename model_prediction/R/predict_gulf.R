@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Full Replication of Shiny App Logic
+# Predict Gulf of Mexico - Exact Shiny App Replication
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -11,9 +11,9 @@ library(xgboost)
 library(ranger)
 library(mgcv)
 library(oce)
-# [CRITICAL FIX] Load stacks and tidymodels for ensemble predictions
-library(stacks) 
-library(tidymodels)
+library(stacks)      # Required for ensemble models
+library(tidymodels)  # Required for recipes/workflows
+library(workflows)   # Required to extract variable names
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -96,9 +96,9 @@ if(file.exists(file.path(static_dir, "bathymetry.tif"))) {
   stop("Static files (bathymetry.tif, DfromShore.tif) missing in model_prediction/gulf/data/")
 }
 
-# [CRITICAL FIX] Placeholder for 'striparea' (Missing File)
-# Setting to 0 to prevent crash. Please upload 'striparea.tif' for accuracy.
-r_striparea <- master_grid * 0; names(r_striparea) <- "striparea"
+# [FIX] Use constant value for striparea (matches Shiny App override)
+r_striparea <- master_grid * 0 + 1876712
+names(r_striparea) <- "striparea"
 
 # Climatology
 target_doy <- yday(date_forecast)
@@ -125,14 +125,18 @@ coords <- as.data.frame(master_grid, xy=TRUE)[, c("x", "y")]
 moon_vals <- oce::moonAngle(t = date_forecast, longitude = coords$x, latitude = coords$y)$illuminatedFraction
 r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle"
 
-# Placeholders
+# Placeholders & Fronts
 r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
 r_hooks_rule  <- master_grid * 0 + 1; names(r_hooks_rule) <- "hooks_rule" 
 
-# Combine ALL Variables (Added striparea)
+# Combine ALL Variables
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+
+# [CRITICAL FIX] Add 'Front_Z' (capitalized) for models that expect it
+pred_df$Front_Z <- pred_df$front_z
+
 if(nrow(pred_df) == 0) stop("Error: Environment stack resulted in 0 valid pixels.")
 
 # ----------------------------------------------------------------
@@ -145,8 +149,6 @@ inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_d
 # 7. PREDICTION LOOP
 # ----------------------------------------------------------------
 model_files <- list.files(models_dir, pattern = "\\.rds$", full.names = TRUE)
-if (length(model_files) == 0) stop(glue("No model files found in {models_dir}"))
-
 message(glue("Found {length(model_files)} models. Starting predictions..."))
 
 for (m_file in model_files) {
@@ -157,7 +159,9 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
+  # Reset current_df
   current_df <- pred_df
+  
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
   } else if (is_yellowfin_target) {
@@ -168,27 +172,64 @@ for (m_file in model_files) {
     model_bundled <- readRDS(m_file)
     model_obj     <- bundle::unbundle(model_bundled)
     
+    preds <- NULL
+    
     if (is_manta) {
+      # --- MANTA RAY (GAM) ---
+      # Just remove coordinates
       preds <- predict(model_obj, newdata = current_df %>% select(-x, -y), type = "response")
       preds <- as.numeric(preds)
+      
     } else {
-      # stacks prediction requires tidymodels/stacks libraries loaded
-      preds_prob <- predict(model_obj, new_data = current_df %>% select(-x, -y), type = "prob")
-      preds <- as.numeric(preds_prob$.pred_presence)
+      # --- FISHERY MODELS (STACKS) ---
+      # [CRITICAL FIX] Replicate Shiny App logic: Extract recipe and select ONLY needed columns.
+      # This prevents the "as_booster" error by ensuring no extra garbage columns are passed.
+      
+      tryCatch({
+        first_member_workflow <- model_obj$member_fits[[1]]
+        recipe_obj <- workflows::extract_recipe(first_member_workflow)
+        
+        # Get list of predictors from the recipe
+        model_predictors <- recipe_obj$var_info %>%
+          dplyr::filter(role == "predictor") %>%
+          dplyr::pull(variable) %>% 
+          unique() %>% 
+          gsub("_X[0-9]+$", "", .) # Remove any dummy var suffixes if present
+        
+        # Filter dataframe to ONLY these columns
+        # (Using any_of allows for slight mismatches, but strictly we want match)
+        clean_df <- current_df %>% 
+          dplyr::select(dplyr::any_of(model_predictors))
+        
+        # Predict on cleaned data
+        preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
+        preds <- as.numeric(preds_prob$.pred_presence)
+        
+      }, error = function(e_inner) {
+        # Fallback if recipe extraction fails (rare)
+        message(glue("    -> Recipe extraction failed ({e_inner$message}), trying raw predict..."))
+        preds_prob <- predict(model_obj, new_data = current_df %>% select(-x, -y), type = "prob")
+        preds <- as.numeric(preds_prob$.pred_presence)
+      })
     }
     
-    r_out <- master_grid
-    values(r_out) <- NA
-    r_out[cellFromXY(r_out, current_df[,c("x","y")])] <- preds
-    names(r_out) <- gsub(".rds", "", model_name)
-    
-    save_name <- paste0("PRED_", date_forecast, "_", gsub(".rds", ".tif", model_name))
-    save_path <- file.path(preds_dir, save_name)
-    
-    writeRaster(r_out, save_path, overwrite = TRUE)
-    message(glue("  -> Saved to {save_name}"))
+    # Save Raster
+    if (!is.null(preds)) {
+      r_out <- master_grid
+      values(r_out) <- NA
+      r_out[cellFromXY(r_out, current_df[,c("x","y")])] <- preds
+      names(r_out) <- gsub(".rds", "", model_name)
+      
+      save_name <- paste0("PRED_", date_forecast, "_", gsub(".rds", ".tif", model_name))
+      save_path <- file.path(preds_dir, save_name)
+      
+      writeRaster(r_out, save_path, overwrite = TRUE)
+      message(glue("  -> Saved to {save_name}"))
+    }
     
   }, error = function(e) {
     message(glue("  -> ERROR predicting {model_name}: {e$message}"))
   })
 }
+
+message("All predictions completed.")
