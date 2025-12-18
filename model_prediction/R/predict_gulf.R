@@ -1,19 +1,20 @@
-# Predict Gulf of Mexico - Clean Namespace Version
+# Predict Gulf of Mexico - Final Dependencies Fix
 
-# --- 1. Load Core Libraries ONLY ---
-# We do NOT load xgboost, ranger, or mgcv explicitly.
-# We let 'bundle' and 'tidymodels' load them internally to avoid S3 conflicts.
+# --- 1. Load Libraries ---
 library(terra)
 library(sf)
 library(dplyr)
 library(glue)
 library(lubridate)
 library(bundle)
+library(xgboost)
+library(ranger)
+library(mgcv)        # [CRITICAL] Required for Manta Ray (GAM) prediction
+library(oce)
 library(stacks)
 library(tidymodels)
 library(workflows)
-library(tidysdm) # Required for model spec definitions
-library(oce)     # For moon angle
+library(tidysdm)     # [CRITICAL] Required for Ensemble model dispatch
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -34,7 +35,10 @@ message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 # ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
   target_date <- date_forecast
+  
+  # MLD is Forecast (Dec 19), Obs are Past (Dec 17)
   obs_vars <- c("l.chl", "sla", "sst", "analysed_sst", "ugosa", "vgosa")
+  
   if (var_name %in% obs_vars) target_date <- date_obs
   
   pattern <- glue("_{var_name}_{target_date}")
@@ -158,7 +162,7 @@ full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_f
 
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
 
-# Match Data Types to Shiny App (Integer for discrete vars)
+# [CRITICAL] Match Data Types to Shiny App
 pred_df$hooks_rule <- as.integer(pred_df$hooks_rule)
 pred_df$doy        <- as.integer(pred_df$doy)
 pred_df$month      <- as.integer(pred_df$month)
@@ -213,14 +217,17 @@ for (m_file in model_files) {
     
     if (is_manta) {
       # Manta Ray (GAM)
+      # Uses local aliases; 'mgcv' library must be loaded.
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
       # Fishery Models (Ensemble)
       # 1. Filter to exact predictors
-      clean_df <- current_df %>% dplyr::select(dplyr::all_of(fishery_predictors))
+      # 2. [CRITICAL] Convert to tibble to ensure stacks/parsnip compatibility
+      clean_df <- current_df %>% 
+        dplyr::select(dplyr::all_of(fishery_predictors)) %>%
+        as_tibble()
       
-      # 2. Predict (Standard Stacks Dispatch)
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
