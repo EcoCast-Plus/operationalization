@@ -45,6 +45,7 @@ jobs:
           any::tidymodels
           any::workflows
           any::tidysdm
+          any::parsnip
 
     - name: Run Prediction Script
       run: Rscript model_prediction/R/predict_gulf.R
