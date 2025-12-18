@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Fixed Missing Variables (uo/vo)
+# Predict Gulf of Mexico - Exact Match to Shiny App Inputs
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -151,12 +151,17 @@ r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle
 
 # Placeholders
 r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
-r_hooks_rule  <- master_grid * 0 + 1; names(r_hooks_rule) <- "hooks_rule" 
+r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" # Integer!
 
 # Combine Final Stack
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
 pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+
+# [CRITICAL] Match Data Types to Shiny App
+pred_df$hooks_rule <- as.integer(pred_df$hooks_rule)
+pred_df$doy        <- as.integer(pred_df$doy)
+pred_df$month      <- as.integer(pred_df$month)
 
 # Aliases for Manta Ray
 pred_df$ChlA       <- pred_df$chl
@@ -175,7 +180,7 @@ if(nrow(pred_df) == 0) {
 # ----------------------------------------------------------------
 # 6. PREDICTION LOOP
 # ----------------------------------------------------------------
-# Exact predictors from your training code
+# Exact predictors from your training code (including uo, vo, hooks_rule)
 fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
@@ -198,7 +203,6 @@ for (m_file in model_files) {
   is_manta            <- grepl("MANTA_RAY", model_name)
   
   current_df <- pred_df
-  current_df$hooks_rule <- as.factor(current_df$hooks_rule)
   
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
@@ -216,8 +220,10 @@ for (m_file in model_files) {
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
-      # Filter to Exact Predictors + ensure uo/vo exist
+      # Filter to Exact Predictors
       clean_df <- current_df %>% dplyr::select(dplyr::all_of(fishery_predictors))
+      
+      # Predict (hooks_rule is integer, recipe will handle factor conversion)
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
