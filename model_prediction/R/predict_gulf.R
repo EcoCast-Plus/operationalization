@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Exact Match to Shiny App Inputs
+# Predict Gulf of Mexico - Added Missing Library tidysdm
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -14,6 +14,9 @@ library(oce)
 library(stacks)
 library(tidymodels)
 library(workflows)
+# [CRITICAL FIX] Load tidysdm because models were trained with it
+# This provides the necessary method dispatch for the ensembles
+library(tidysdm) 
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -69,7 +72,6 @@ load_raw <- function(var_name, nc_var) {
   return(r[[1]]) 
 }
 
-# Load Raw Layers
 r_sst        <- load_raw("thetao", "thetao") 
 master_grid  <- r_sst 
 
@@ -88,7 +90,7 @@ message("Calculating Derived Variables (EKE, TKE)...")
 r_eke <- 0.5 * (r_uo^2 + r_vo^2)
 r_tke <- 0.5 * (r_uo^2 + r_vo^2)
 
-# [CRITICAL FIX] Added 'uo' and 'vo' to this stack. They were missing!
+# Stack
 env_stack_dynamic <- c(
   validate_layer(r_sst, "thetao", master_grid),
   validate_layer(r_chl, "chl", master_grid),
@@ -100,8 +102,8 @@ env_stack_dynamic <- c(
   validate_layer(r_tke, "tke", master_grid),
   validate_layer(r_mld, "mlotst", master_grid),
   validate_layer(r_so, "so", master_grid),
-  validate_layer(r_uo, "uo", master_grid),  # <--- Added
-  validate_layer(r_vo, "vo", master_grid)   # <--- Added
+  validate_layer(r_uo, "uo", master_grid),
+  validate_layer(r_vo, "vo", master_grid)
 )
 
 # ----------------------------------------------------------------
@@ -151,7 +153,7 @@ r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle
 
 # Placeholders
 r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
-r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" # Integer!
+r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
 
 # Combine Final Stack
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
@@ -171,11 +173,7 @@ pred_df$Front_Z    <- pred_df$front_z
 pred_df$Depth      <- pred_df$depth
 pred_df$DfromShore <- pred_df$dfrom_shore
 
-if(nrow(pred_df) == 0) {
-  df_check <- as.data.frame(full_stack, xy=FALSE, na.rm=FALSE)
-  print(colSums(is.na(df_check)))
-  stop("Terminating due to empty prediction frame.")
-}
+if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
 
 # ----------------------------------------------------------------
 # 6. PREDICTION LOOP
@@ -202,6 +200,7 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
+  # Reset dataframe
   current_df <- pred_df
   
   if (is_swordfish_target) {
@@ -217,13 +216,15 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
+      # Manta is a GAM, handles itself well with aliases
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
-      # Filter to Exact Predictors
+      # Fishery Models (Ensemble)
+      # 1. Filter to exact predictors to avoid confusion
       clean_df <- current_df %>% dplyr::select(dplyr::all_of(fishery_predictors))
       
-      # Predict (hooks_rule is integer, recipe will handle factor conversion)
+      # 2. Predict (now with tidysdm loaded, this should dispatch correctly)
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
