@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Final Fix for Factors and Aliases
+# Predict Gulf of Mexico - Final Logic Fix
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -34,7 +34,11 @@ message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 # ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
   target_date <- date_forecast
-  obs_vars <- c("l.chl", "sla", "sst", "mld", "analysed_sst", "ugosa", "vgosa")
+  
+  # [CRITICAL FIX] Removed "mld" from this list. 
+  # MLD is a model forecast (Dec 19), not an observation (Dec 17).
+  obs_vars <- c("l.chl", "sla", "sst", "analysed_sst", "ugosa", "vgosa")
+  
   if (var_name %in% obs_vars) target_date <- date_obs
   
   pattern <- glue("_{var_name}_{target_date}")
@@ -83,7 +87,6 @@ env_stack_dynamic <- c(
   resample(r_mld, master_grid, method="bilinear"),
   resample(r_so, master_grid, method="bilinear")
 )
-# Match names to training data
 names(env_stack_dynamic) <- c("thetao", "chl", "zos", "bottom_t", "thetao_150m", "thetao_500m", "eke", "tke", "mlotst", "so")
 
 # ----------------------------------------------------------------
@@ -144,7 +147,6 @@ if(nrow(pred_df) == 0) stop("Error: Environment stack resulted in 0 valid pixels
 # ----------------------------------------------------------------
 # 6. DEFINE PREDICTOR LIST & ALIASES
 # ----------------------------------------------------------------
-# Standard Fishery Predictors (must match training exactly)
 fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
@@ -152,7 +154,6 @@ fishery_predictors <- c(
   "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
 )
 
-# Operational Defaults
 inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
 inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_duration = 8, day_hours = 7, night_hours = 1)
 
@@ -170,15 +171,9 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
-  # Reset dataframe
   current_df <- pred_df
-  
-  # [CRITICAL FIX] Convert hooks_rule to FACTOR
-  # The training code used 'step_mutate(hooks_rule = as.factor(hooks_rule))'.
-  # The recipe expects a factor input to perform dummy encoding correctly.
   current_df$hooks_rule <- as.factor(current_df$hooks_rule)
   
-  # Add Operational Inputs
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
   } else if (is_yellowfin_target) {
@@ -192,30 +187,22 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
-      # --- MANTA RAY FIX ---
-      # Add the specific Capitalized Aliases this GAM expects
       current_df$ChlA       <- current_df$chl
       current_df$SST        <- current_df$thetao
       current_df$Front_Z    <- current_df$front_z
       current_df$DfromShore <- current_df$dfrom_shore
       
-      # Predict (response type for GAM)
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
       
     } else {
-      # --- FISHERY MODELS FIX ---
-      # 1. Filter to exact predictors to remove garbage columns
       clean_df <- current_df %>% 
-        dplyr::select(dplyr::any_of(fishery_predictors))
+        dplyr::select(dplyr::all_of(fishery_predictors))
       
-      # 2. Predict (prob type for Ensemble)
-      # The dataframe now has 'hooks_rule' as a Factor, preventing the Booster error
       preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
       preds <- as.numeric(preds_prob$.pred_presence)
     }
     
-    # Save Raster
     if (!is.null(preds)) {
       r_out <- master_grid
       values(r_out) <- NA
