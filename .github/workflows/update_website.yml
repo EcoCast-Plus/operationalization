@@ -1,85 +1,100 @@
 name: Update Website
 
 on:
+  # Triggered when model workflows complete
+  workflow_run:
+    workflows: ["CMEMS model workflow", "ROMS model workflow"]
+    types:
+      - completed
+  # Manual trigger
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
 
 jobs:
   update-website:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    permissions:
+      contents: write
     env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       QUARTO_BUILD_DIR: website/docs
-      # Tell R where to install packages so we can cache them easily
-      R_LIBS_USER: ${{ github.workspace }}/R/library
-      
     steps:
-    # 1. Checkout (Sparse)
     - name: Check out repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 1
         sparse-checkout: |
           metadata/
           website/
           model_prediction/
         sparse-checkout-cone-mode: true
 
-    # 2. Delete DESCRIPTION (Still vital!)
-    - name: Remove DESCRIPTION file
-      run: rm -f DESCRIPTION
-
-    # 3. Install R (Basic version only)
-    - name: Install R
-      uses: r-lib/actions/setup-r@v2
+    - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        r-version: '4.4.3'
-        use-public-rspm: true 
+        auto-update-conda: true
+        python-version: 3.11
 
-    # 4. CACHE R PACKAGES (The Speed Boost)
-    # This checks if we already downloaded the packages in a previous run.
-    - name: Cache R Packages
-      uses: actions/cache@v4
-      id: cache-r
-      with:
-        path: ${{ env.R_LIBS_USER }}
-        # The key changes only if you modify the workflow file (adding new packages)
-        key: ${{ runner.os }}-r-website-${{ hashFiles('.github/workflows/website.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-r-website-
-
-    # 5. Create Library Directory (Required for caching)
-    - name: Create R Library
-      run: dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)
-      shell: Rscript {0}
-
-    # 6. Install Packages (ONLY runs if cache is missing)
-    # We skip the heavy system dependencies because we only need HTML support.
-    - name: Install Website Packages
-      if: steps.cache-r.outputs.cache-hit != 'true'
+    - name: Install Copernicus Marine Toolbox
+      shell: bash -el {0}
       run: |
-        install.packages(c("rmarkdown", "knitr", "quarto", "jsonlite", "yaml"))
-      shell: Rscript {0}
+        conda install -c conda-forge copernicusmarine
+        conda install scipy
 
-    # 7. Setup Quarto
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
       with:
         version: 1.9.9
 
-    # 8. Render
-    - name: Render Quarto Website
-      run: quarto render website --no-execute
-
-    # 9. Upload & Deploy
-    - name: Upload Pages Artifact
-      uses: actions/upload-pages-artifact@v3
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
       with:
-        path: ${{ env.QUARTO_BUILD_DIR }}
+        r-version: '4.4.3'
 
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+    - name: Install R packages
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache-version: 4
+
+    # [GULF ADDITION] Explicitly install packages for the Gulf App & Shinylive
+    - name: Install Gulf App Dependencies
+      run: |
+        install.packages(c("shinylive", "httpuv", "shiny", "terra", "sf", "ggplot2", "plotly", "rnaturalearth", "rnaturalearthdata", "scales", "patchwork"))
+      shell: Rscript {0}
+
+    # [GULF ADDITION] Stage and Build the Gulf App
+    # We use 'shell: bash' so we can use standard linux commands (cp, mkdir) even on Windows
+    - name: Build Gulf Shinylive App
+      shell: bash
+      run: |
+        echo "Staging Gulf App Data..."
+        
+        # 1. Create Staging Directory inside the existing website/gulf folder
+        mkdir -p website/gulf/predictions
+        mkdir -p website/gulf/data
+
+        # 2. Copy Daily Predictions (Ignore error if no files found yet)
+        cp model_prediction/gulf/predictions/*.tif website/gulf/predictions/ || echo "No Gulf predictions found"
+
+        # 3. Copy Static Data
+        # We use '|| true' to prevent the workflow from failing if specific files are missing
+        cp model_prediction/gulf/data/*.gpkg website/gulf/data/ || true
+        cp model_prediction/gulf/data/*.shp website/gulf/data/ || true
+        cp model_prediction/gulf/data/*.shx website/gulf/data/ || true
+        cp model_prediction/gulf/data/*.dbf website/gulf/data/ || true
+        cp model_prediction/gulf/data/*.prj website/gulf/data/ || true
+
+        # 4. Export to Website Build Folder
+        # This takes 'website/gulf' (code + staged data) and compiles it into the docs folder
+        # We output to 'website/docs/gulf_app_static' so it doesn't overwrite the page HTML
+        echo "Exporting Shinylive App..."
+        Rscript -e "shinylive::export('website/gulf', 'website/docs/gulf_app_static')"
+
+    - name: Render Quarto Website
+      run: quarto render website
+      # This will render the main pages (West Coast live, Gulf page wrapping the static app)
+
+    - name: Deploy to gh-pages branch
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ${{ env.QUARTO_BUILD_DIR }}
+        publish_branch: gh-pages
