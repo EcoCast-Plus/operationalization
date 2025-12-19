@@ -1,8 +1,10 @@
 ---
-title: "Gulf of America Explorer"
+title: "Gulf of America Pelagic Longline Explorer"
 page-layout: full
 ---
 
+This interactive tool displays daily species distribution predictions based on current oceanographic conditions.
+
 ::: {.column-screen}
-<iframe src="gulf_static/" width="100%" height="900px" style="border:none;"></iframe>
+<iframe src="../gulf_app_static/" width="100%" height="900px" style="border:none;"></iframe>
 :::
