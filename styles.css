@@ -1,0 +1,35 @@
+/* NOAA Branding Colors */
+:root {
+  --noaa-blue: #003087;
+  --noaa-light-blue: #0085CA;
+}
+
+/* Force the Navbar to use NOAA Blue */
+.navbar {
+  background-color: var(--noaa-blue) !important;
+}
+
+/* Adjust the logo size in the navbar */
+.navbar-brand img {
+  height: 50px;
+  margin-right: 10px;
+}
+
+/* Make the sidebar slightly more distinct */
+.sidebar {
+  border-right: 1px solid #dee2e6;
+}
+
+/* Header styling */
+h1, h2, h3 {
+  color: var(--noaa-blue);
+  font-weight: 600;
+}
+
+/* Improve link colors */
+a {
+  color: var(--noaa-light-blue);
+}
+a:hover {
+  color: var(--noaa-blue);
+}
