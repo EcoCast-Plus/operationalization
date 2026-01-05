@@ -54,43 +54,13 @@ jobs:
       with:
         cache-version: 4
 
-    # [GULF ADDITION] Explicitly install packages for the Gulf App & Shinylive
-    - name: Install Gulf App Dependencies
-      run: |
-        install.packages(c("shinylive", "httpuv", "shiny", "terra", "sf", "ggplot2", "plotly", "rnaturalearth", "rnaturalearthdata", "scales", "patchwork"))
-      shell: Rscript {0}
-
-    # [GULF ADDITION] Stage and Build the Gulf App
-    # We use 'shell: bash' so we can use standard linux commands (cp, mkdir) even on Windows
-    - name: Build Gulf Shinylive App
-      shell: bash
-      run: |
-        echo "Staging Gulf App Data..."
-        
-        # 1. Create Staging Directory inside the existing website/gulf folder
-        mkdir -p website/gulf/predictions
-        mkdir -p website/gulf/data
-
-        # 2. Copy Daily Predictions (Ignore error if no files found yet)
-        cp model_prediction/gulf/predictions/*.tif website/gulf/predictions/ || echo "No Gulf predictions found"
-
-        # 3. Copy Static Data
-        # We use '|| true' to prevent the workflow from failing if specific files are missing
-        cp model_prediction/gulf/data/*.gpkg website/gulf/data/ || true
-        cp model_prediction/gulf/data/*.shp website/gulf/data/ || true
-        cp model_prediction/gulf/data/*.shx website/gulf/data/ || true
-        cp model_prediction/gulf/data/*.dbf website/gulf/data/ || true
-        cp model_prediction/gulf/data/*.prj website/gulf/data/ || true
-
-        # 4. Export to Website Build Folder
-        # This takes 'website/gulf' (code + staged data) and compiles it into the docs folder
-        # We output to 'website/docs/gulf_app_static' so it doesn't overwrite the page HTML
-        echo "Exporting Shinylive App..."
-        Rscript -e "shinylive::export('website/gulf', 'website/docs/gulf_app_static')"
+    # [REMOVED] "Install Gulf App Dependencies" - Not needed for Iframe
+    # [REMOVED] "Build Gulf Shinylive App" - Not needed for Iframe
 
     - name: Render Quarto Website
       run: quarto render website
-      # This will render the main pages (West Coast live, Gulf page wrapping the static app)
+      # This builds the HTML pages. The Gulf page will contain the iframe pointing 
+      # to your live app on connect.fisheries.noaa.gov
 
     - name: Deploy to gh-pages branch
       uses: peaceiris/actions-gh-pages@v3
