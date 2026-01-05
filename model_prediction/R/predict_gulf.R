@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Final Dependencies Fix + Env Export
+# Predict Gulf of Mexico - Coastal Manta Fix + Env Export
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -160,22 +160,47 @@ r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule"
 # Combine Final Stack
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
-pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+# ----------------------------------------------------------------
+# 5b. [CRITICAL FIX] Create Two Prediction Dataframes
+# ----------------------------------------------------------------
+message("Preparing Prediction Dataframes...")
 
-# [CRITICAL] Match Data Types to Shiny App
-pred_df$hooks_rule <- as.integer(pred_df$hooks_rule)
-pred_df$doy        <- as.integer(pred_df$doy)
-pred_df$month      <- as.integer(pred_df$month)
+# Function to prepare dataframe (handles aliases and types)
+prepare_df <- function(stack_in) {
+  df <- as.data.frame(stack_in, xy = TRUE, na.rm = TRUE)
+  
+  if (nrow(df) > 0) {
+    # Type Casting
+    if("hooks_rule" %in% names(df)) df$hooks_rule <- as.integer(df$hooks_rule)
+    if("doy" %in% names(df))        df$doy        <- as.integer(df$doy)
+    if("month" %in% names(df))      df$month      <- as.integer(df$month)
+    
+    # Aliases (for models trained with different names)
+    if("chl" %in% names(df))         df$ChlA       <- df$chl
+    if("thetao" %in% names(df))      df$SST        <- df$thetao
+    if("zos" %in% names(df))         df$SSH        <- df$zos
+    if("front_z" %in% names(df))     df$Front_Z    <- df$front_z
+    if("depth" %in% names(df))       df$Depth      <- df$depth
+    if("dfrom_shore" %in% names(df)) df$DfromShore <- df$dfrom_shore
+  }
+  return(df)
+}
 
-# Aliases for Manta Ray
-pred_df$ChlA       <- pred_df$chl
-pred_df$SST        <- pred_df$thetao
-pred_df$SSH        <- pred_df$zos
-pred_df$Front_Z    <- pred_df$front_z
-pred_df$Depth      <- pred_df$depth
-pred_df$DfromShore <- pred_df$dfrom_shore
+# 1. Fishery DF: Uses ALL variables (Deep water constrained by thetao_150m/500m NAs)
+pred_df_fishery <- prepare_df(full_stack)
 
-if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
+# 2. Manta DF: REMOVES deep variables that cause shelf-masking
+# We exclude temp at depth so we don't lose the coast
+manta_vars_to_exclude <- c("thetao_150m", "thetao_500m")
+manta_stack_names <- names(full_stack)[!names(full_stack) %in% manta_vars_to_exclude]
+manta_stack <- full_stack[[manta_stack_names]]
+
+pred_df_manta <- prepare_df(manta_stack)
+
+message(glue("Fishery Prediction Points: {nrow(pred_df_fishery)}"))
+message(glue("Manta Ray Prediction Points: {nrow(pred_df_manta)} (Should be higher/include coast)"))
+
+if(nrow(pred_df_fishery) == 0 && nrow(pred_df_manta) == 0) stop("Terminating due to empty prediction frames.")
 
 # ----------------------------------------------------------------
 # 6. PREDICTION LOOP
@@ -201,7 +226,12 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
-  current_df <- pred_df
+  # [CRITICAL FIX] Select the correct dataframe
+  if (is_manta) {
+    current_df <- pred_df_manta
+  } else {
+    current_df <- pred_df_fishery
+  }
   
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
@@ -272,7 +302,6 @@ for (layer_name in names(env_map)) {
     r_out <- full_stack[[layer_name]]
     out_suffix <- env_map[[layer_name]]
     
-    # Naming convention matches what Shiny app regex looks for
     save_name <- glue("PRED_{date_forecast}_{out_suffix}.tif")
     save_path <- file.path(preds_dir, save_name)
     
