@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Final Dependencies Fix
+# Predict Gulf of Mexico - Final Dependencies Fix + Env Export
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -154,7 +154,7 @@ moon_vals <- oce::moonAngle(t = date_forecast, longitude = coords$x, latitude = 
 r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle"
 
 # Placeholders
-r_fronts      <- master_grid * 0; names(r_fronts)      <- "front_z"
+r_fronts      <- master_grid * 0; names(r_fronts)       <- "front_z"
 r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
 
 # Combine Final Stack
@@ -217,13 +217,10 @@ for (m_file in model_files) {
     
     if (is_manta) {
       # Manta Ray (GAM)
-      # Uses local aliases; 'mgcv' library must be loaded.
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
       # Fishery Models (Ensemble)
-      # 1. Filter to exact predictors
-      # 2. [CRITICAL] Convert to tibble to ensure stacks/parsnip compatibility
       clean_df <- current_df %>% 
         dplyr::select(dplyr::all_of(fishery_predictors)) %>%
         as_tibble()
@@ -250,4 +247,50 @@ for (m_file in model_files) {
   })
 }
 
-message("All predictions completed.")
+# ----------------------------------------------------------------
+# 7. EXPORT ENVIRONMENTAL LAYERS
+# ----------------------------------------------------------------
+message("Exporting Environmental Layers for Viewer...")
+
+# Define mapping: Internal Name -> Output Filename Suffix
+env_map <- list(
+  "thetao"      = "sst",
+  "zos"         = "ssh",
+  "chl"         = "chlorophyll",
+  "so"          = "salinity",
+  "eke"         = "eke",
+  "tke"         = "tke",
+  "mlotst"      = "mld",
+  "depth"       = "bathymetry",
+  "dfrom_shore" = "distance_to_shore",
+  "bottom_t"    = "bottom_temp"
+)
+
+# Export Layers defined in mapping
+for (layer_name in names(env_map)) {
+  if (layer_name %in% names(full_stack)) {
+    r_out <- full_stack[[layer_name]]
+    out_suffix <- env_map[[layer_name]]
+    
+    # Naming convention matches what Shiny app regex looks for
+    save_name <- glue("PRED_{date_forecast}_{out_suffix}.tif")
+    save_path <- file.path(preds_dir, save_name)
+    
+    writeRaster(r_out, save_path, overwrite = TRUE)
+    message(glue("  -> Exported Env: {save_name}"))
+  }
+}
+
+# Calculate and Export Current Speed (Mag of uo/vo)
+if (all(c("uo", "vo") %in% names(full_stack))) {
+  r_curr <- sqrt(full_stack[["uo"]]^2 + full_stack[["vo"]]^2)
+  names(r_curr) <- "current_speed"
+  
+  save_name <- glue("PRED_{date_forecast}_current_speed.tif")
+  save_path <- file.path(preds_dir, save_name)
+  
+  writeRaster(r_curr, save_path, overwrite = TRUE)
+  message(glue("  -> Exported Env: {save_name}"))
+}
+
+message("All predictions and environmental layers completed.")
