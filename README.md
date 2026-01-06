@@ -9,70 +9,37 @@ Based on need, this repo may change to account for additional data sources, mode
 
 ```bash
 
-├── DESCRIPTION
-├── README.md
-├── data_acquisition
-│   ├── R
-│   │   ├── acquire_cmems.R
-│   │   ├── acquire_example.R
-│   │   └── acquire_utils.R
-│   └── netcdfs
-│       └── cmems_ncdfs
-├── data_processing
-│   ├── R
-│   │   ├── hw_test.R
-│   │   ├── process_cmems.R
-│   │   ├── process_example.R
-│   │   ├── process_roms.R
-│   │   └── process_utils.R
-│   └── TopPredatorWatch
-│       ├── rasters
-│       └── static
-├── metadata
-│   └── model_metadata.csv
-├── model_prediction
-│   ├── R
-│   │   ├── predict_ROMS.R
-│   │   ├── predict_TopPredatorWatch.R
-│   │   ├── predict_example.R
-│   │   ├── predict_gulf.R
-│   │   └── predict_utils.R
-│   ├── TopPredatorWatch
-│   │   ├── img
-│   │   ├── rasters
-│   │   └── static
-│   └── gulf
-│       ├── data
-│       ├── predictions
-│       └── results
-├── repo_cleanup
-│   └── delete_old_files.R
-└── website
-    ├── _extensions
-    │   └── quarto-ext
-    ├── _quarto.yml
-    ├── docs
-    │   ├── index.html
-    │   ├── lbst_cmems.html
-    │   ├── leatherback.html
-    │   ├── robots.txt
-    │   ├── search.json
-    │   ├── site_libs
-    │   └── styles.css
-    ├── gulf
-    │   ├── app.R
-    │   └── pelagic_longline.qmd
-    ├── hawaii
-    │   └── placeholder.qmd
-    ├── index.qmd
-    ├── south_atlantic
-    │   └── placeholder.qmd
-    ├── styles.css
-    ├── utils.R
-    └── west_coast
-        ├── cmems_app.R
-        ├── lbst_cmems.qmd
-        ├── leatherback.qmd
-        └── placeholder.txt
-```
+EcoCast-Plus/operationalization/ (Repository Root)
+│
+├── .github/
+│   └── workflows/                  # <-- THE AUTOMATION ENGINE
+│       ├── acquire_cmems.yml       # (1) Nightly Cron Job trigger
+│       ├── predict_gulf.yml        # (2) Runs models after data acquisition
+│       └── update_website.yml      # (3) Rebuilds site after predictions
+│
+├── data_acquisition/
+│   ├── R/
+│   │   └── acquire_cmems.R         # Script run by the first workflow
+│   └── netcdfs/cmems_ncdfs/        # Raw downloaded environmental data stored here
+│
+├── model_prediction/
+│   ├── R/
+│   │   └── predict_gulf.R          # The core modeling script (loads data, predicts, saves TIFFs)
+│   └── gulf/
+│       ├── data/                   # Static inputs (bathymetry, shapefiles)
+│       ├── results/                # Trained model objects (.rds files)
+│       └── predictions/            # <-- THE OUTPUT DESTINATION
+│           ├── PRED_2026-01-06_sst.tif
+│           ├── PRED_2026-01-06_Swordfish_Target.tif
+│           └── ... (Daily TIFFs live here)
+│
+├── website/
+│   ├── _quarto.yml                 # Website navigation configuration
+│   ├── index.qmd                   # Homepage
+│   ├── gulf/
+│   │   └── pelagic_longline.qmd    # The page containing the iframe to Posit Connect
+│   └── gulf_app_source/            # Source code for the live app
+│       ├── app.R                   # <-- THE SHINY APP BRAIN (deployed to Posit Connect)
+│       └── data/                   # App-specific static files (fishing area polygons)
 
+```
