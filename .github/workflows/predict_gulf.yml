@@ -1,6 +1,12 @@
 name: Predict Gulf of Mexico
 
 on:
+  # [NEW TRIGGER] Run automatically when "Download CMEMS data" completes
+  workflow_run:
+    workflows: ["Download CMEMS data"]
+    types:
+      - completed
+  # Keep manual trigger for testing
   workflow_dispatch:
 
 permissions:
@@ -8,6 +14,8 @@ permissions:
 
 jobs:
   predict-gulf:
+    # [SAFETY CHECK] Only run if the download workflow actually succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
