@@ -1,9 +1,9 @@
 name: Update Website
 
 on:
-  # Triggered when model workflows complete
+  # Triggered when ANY of these workflows complete
   workflow_run:
-    workflows: ["CMEMS model workflow", "ROMS model workflow"]
+    workflows: ["Predict Gulf of Mexico", "CMEMS model workflow", "ROMS model workflow"]
     types:
       - completed
   # Manual trigger
@@ -11,6 +11,8 @@ on:
 
 jobs:
   update-website:
+    # [SAFETY CHECK] Only run if the triggering workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: windows-latest
     permissions:
       contents: write
@@ -54,13 +56,8 @@ jobs:
       with:
         cache-version: 4
 
-    # [REMOVED] "Install Gulf App Dependencies" - Not needed for Iframe
-    # [REMOVED] "Build Gulf Shinylive App" - Not needed for Iframe
-
     - name: Render Quarto Website
       run: quarto render website
-      # This builds the HTML pages. The Gulf page will contain the iframe pointing 
-      # to your live app on connect.fisheries.noaa.gov
 
     - name: Deploy to gh-pages branch
       uses: peaceiris/actions-gh-pages@v3
