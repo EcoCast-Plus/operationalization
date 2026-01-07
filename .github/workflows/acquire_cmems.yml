@@ -1,9 +1,9 @@
 name: Download CMEMS data
 
 on:
-  # Schedule to run at 2:00 AM ET daily
+  # Schedule to run at 9:00 AM ET daily (14:00 UTC)
   schedule:
-    - cron: '0 7 * * *' 
+    - cron: '0 14 * * *'
   # Keep manual trigger available
   workflow_dispatch:
 
