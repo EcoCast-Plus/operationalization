@@ -13,7 +13,7 @@ EcoCast-Plus/operationalization/ (Repository Root)
 │
 ├── .github/
 │   └── workflows/                  # <-- THE AUTOMATION ENGINE
-│       ├── acquire_cmems.yml       # (1) Nightly Cron Job trigger
+│       ├── acquire_cmems.yml       # (1) Daily Cron Job trigger
 │       ├── predict_gulf.yml        # (2) Runs models after data acquisition
 │       └── update_website.yml      # (3) Rebuilds site after predictions
 │
