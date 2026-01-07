@@ -1,5 +1,5 @@
-
-### Script to delete processedCMEMS files directly from GH repo dir
+### Script to delete processed files directly from GH repo via API
+# prevents repo bloat without needing to clone/push huge history
 
 library(httr)
 library(jsonlite)
@@ -7,10 +7,22 @@ library(lubridate)
 library(stringr)
 
 # --- CONFIGURATION ---
-OWNER <- "joshcullen"
-REPO <- "CEG_operationalization"
+
+# [UPDATED] Automatically get repo info from GitHub Action environment
+full_repo <- Sys.getenv("GITHUB_REPOSITORY") # Returns "Owner/RepoName"
+parts <- str_split(full_repo, "/", simplify = TRUE)
+
+if (length(parts) == 2) {
+  OWNER <- parts[1]
+  REPO  <- parts[2]
+} else {
+  # Fallback for local testing (Replace with your details if testing locally)
+  OWNER <- "EcoCast-Plus"
+  REPO  <- "operationalization"
+}
+
 BRANCH <- "main" 
-DAYS_OLD <- 60
+DAYS_OLD <- 7  # [UPDATED] Changed from 60 to 7 days
 
 # Set to TRUE to ONLY print what would be deleted. 
 # Set to FALSE to perform the actual deletion.
@@ -28,11 +40,11 @@ HEADERS <- c(
   Accept = "application/vnd.github.v3+json"
 )
 
-# Calculate cutoff date (90 days ago)
+# Calculate cutoff date
 CUTOFF_DATE <- today() - days(DAYS_OLD)
 print(paste("Cutoff Date (files older than this will be deleted):", CUTOFF_DATE))
 
-# Adjust DATE_PATTERN and DATE_FORMAT if your file names use a different structure (e.g., YYYY-MM-DD)
+# Adjust DATE_PATTERN if your file names use a different structure
 DATE_PATTERN <- "(\\d{4}-\\d{2}-\\d{2})" 
 DATE_FORMAT <- "%Y-%m-%d"
 
@@ -53,7 +65,7 @@ clean_old_files <- function(directory_path,
   BASE_URL <- paste0("https://api.github.com/repos/", owner, "/", repo, "/contents/", directory_path)
   deletion_count <- 0
   
-  # Step 1: Fetch directory contents (lists all files and returns their SHAs)
+  # Step 1: Fetch directory contents
   response <- GET(BASE_URL, add_headers(.headers = headers))
   
   if (http_error(response)) {
@@ -65,7 +77,7 @@ clean_old_files <- function(directory_path,
     stop("GitHub API error encountered.")
   }
   
-  files_data <- fromJSON(content(response, "text"))
+  files_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
   
   if (is.null(files_data) || !is.data.frame(files_data) || nrow(files_data) == 0) {
     print("Directory is empty. Skipping.")
@@ -88,7 +100,6 @@ clean_old_files <- function(directory_path,
     # Check if a date was actually found
     if (!is.na(date_match)) {
       
-      # Use tryCatch for robust date conversion
       tryCatch({
         file_date <- as.Date(date_match, format = date_format)
         
@@ -100,7 +111,6 @@ clean_old_files <- function(directory_path,
             print(paste("👀 DRY RUN (Would Delete):", file_name, "(Date:", file_date, ")"))
           } else {
             
-            # DELETE request payload (requires SHA, message, and branch)
             delete_payload <- list(
               message = paste("Automated cleanup: Deleting old file", file_name),
               sha = file$sha, 
@@ -127,20 +137,23 @@ clean_old_files <- function(directory_path,
       })
       
     } else {
-      print(paste("ℹ️ Skipping", file_name, ": No date found matching pattern."))
+      # Optional: Print skipping message only for debugging to reduce log noise
+      # print(paste("ℹ️ Skipping", file_name, ": No date found matching pattern."))
     }
   }
   
-  print(paste("--- Directory cleanup finished. Total files processed for deletion:", deletion_count, "---"))
+  print(paste("--- Directory cleanup finished. Total deleted:", deletion_count, "---"))
   return(deletion_count)
 }
 # ----------------------------------------------------
 
 ### Clean up dirs
 
-# Define the list of directories you want to clean
-directories_to_clean <- c("data_acquisition/netcdfs/cmems_ncdfs",
-                          "data_processing/TopPredatorWatch/rasters")
+# [UPDATED] List of actual directories used in your project
+directories_to_clean <- c(
+  "data_acquisition/netcdfs/cmems_ncdfs",   # Raw NetCDFs
+  "model_prediction/gulf/predictions"       # Prediction TIFFs
+)
 
 total_deleted <- 0
 
@@ -151,4 +164,4 @@ for (dir in directories_to_clean) {
 }
 
 print("=====================================================================")
-print(paste("GLOBAL CLEANUP COMPLETE. TOTAL FILES MARKED FOR DELETION:", total_deleted))
+print(paste("GLOBAL CLEANUP COMPLETE. TOTAL FILES DELETED:", total_deleted))
