@@ -13,14 +13,18 @@ EcoCast-Plus/operationalization/ (Repository Root)
 │
 ├── .github/
 │   └── workflows/                  # <-- THE AUTOMATION ENGINE
-│       ├── acquire_cmems.yml       # (1) Daily Cron Job trigger
+│       ├── acquire_cmems.yml       # (1) Daily Cron Job trigger (9:00 AM ET)
 │       ├── predict_gulf.yml        # (2) Runs models after data acquisition
-│       └── update_website.yml      # (3) Rebuilds site after predictions
+│       ├── update_website.yml      # (3) Rebuilds site after predictions
+│       └── cleanup_repo.yml        # (4) Maintenance: Deletes old files daily
+│
+├── repo_cleanup/                   # NEW FOLDER
+│   └── delete_old_files.R          # Script run by the cleanup workflow
 │
 ├── data_acquisition/
 │   ├── R/
 │   │   └── acquire_cmems.R         # Script run by the first workflow
-│   └── netcdfs/cmems_ncdfs/        # Raw downloaded environmental data stored here
+│   └── netcdfs/cmems_ncdfs/        # Raw downloaded environmental data (cleaned weekly)
 │
 ├── model_prediction/
 │   ├── R/
@@ -28,9 +32,9 @@ EcoCast-Plus/operationalization/ (Repository Root)
 │   └── gulf/
 │       ├── data/                   # Static inputs (bathymetry, shapefiles)
 │       ├── results/                # Trained model objects (.rds files)
-│       └── predictions/            # <-- THE OUTPUT DESTINATION
-│           ├── PRED_2026-01-06_sst.tif
-│           ├── PRED_2026-01-06_Swordfish_Target.tif
+│       └── predictions/            # <-- THE OUTPUT DESTINATION (cleaned weekly)
+│           ├── PRED_2026-01-07_sst.tif
+│           ├── PRED_2026-01-07_Swordfish_Target.tif
 │           └── ... (Daily TIFFs live here)
 │
 ├── website/
@@ -41,5 +45,4 @@ EcoCast-Plus/operationalization/ (Repository Root)
 │   └── gulf_app_source/            # Source code for the live app
 │       ├── app.R                   # <-- THE SHINY APP BRAIN (deployed to Posit Connect)
 │       └── data/                   # App-specific static files (fishing area polygons)
-
 ```
