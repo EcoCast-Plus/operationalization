@@ -1,78 +1,96 @@
-/* NOAA Brand Colors */
+/* --- GLOBAL NOAA BRANDING --- */
 :root {
-  --noaa-blue: #003087;
-  --noaa-dark: #001a4d;
-  --noaa-accent: #005da2;
-  --light-gray: #f2f2f2;
+  --noaa-blue: #003087;    /* Primary Dark Blue */
+  --noaa-accent: #005da2;  /* Lighter Blue */
+  --text-white: #ffffff;
+  --bg-light: #f8f9fa;
 }
 
-/* Hero Banner */
+/* --- HERO BANNER (Edge-to-Edge) --- */
 .hero-banner {
   background-color: var(--noaa-blue);
-  color: white;
+  color: var(--text-white) !important; /* Force white text */
   padding: 4rem 2rem;
-  margin-bottom: 2rem;
-  margin-top: -1rem; /* Pull up to navbar */
-  border-bottom: 5px solid var(--noaa-accent);
+  margin-top: -1em; /* Pull up to touch navbar */
   text-align: center;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+.hero-banner h1, .hero-banner h3, .hero-banner p {
+  color: var(--text-white) !important;
 }
 
 .hero-banner h1 {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 3.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.hero-banner h3 {
-  font-weight: 300;
-  opacity: 0.9;
+  letter-spacing: 1px;
 }
 
 .hero-banner .lead {
-  font-size: 1.25rem;
-  max-width: 800px;
-  margin: 1.5rem auto 0;
-  opacity: 0.85;
+  font-size: 1.3rem;
+  font-weight: 300;
+  opacity: 0.9;
+  max-width: 900px;
+  margin: 1rem auto;
 }
 
-/* Card Styling to look like NOAA Grid */
-.noaa-card {
-  border: none;
-  border-top: 4px solid var(--noaa-blue);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s;
-  background-color: white;
+/* --- ICON NAVIGATION (Horizontal Row) --- */
+.icon-grid {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+  margin-top: 3rem;
+  margin-bottom: 3rem;
 }
 
-.noaa-card:hover {
+.icon-item {
+  text-align: center;
+  width: 180px;
+  transition: transform 0.2s;
+}
+
+.icon-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 15px rgba(0,0,0,0.15);
 }
 
-.noaa-card h4 {
-  color: var(--noaa-blue);
-  font-weight: 600;
-}
-
-.noaa-card-disabled {
-  border: none;
-  border-top: 4px solid #ccc;
-  background-color: #f9f9f9;
-  color: #666;
-}
-
-/* Button overrides for Zephyr theme to match NOAA Blue */
-.btn-primary {
+.icon-circle {
   background-color: var(--noaa-blue);
-  border-color: var(--noaa-blue);
+  color: white;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 1rem auto;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-.btn-primary:hover {
+.icon-item:hover .icon-circle {
   background-color: var(--noaa-accent);
-  border-color: var(--noaa-accent);
 }
 
-/* Navbar adjustments */
-.navbar {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+.icon-title {
+  font-weight: 700;
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+  text-decoration: none;
+}
+
+.icon-text {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.2;
+}
+
+a.icon-link {
+  text-decoration: none;
 }
