@@ -80,9 +80,23 @@ css: styles.css
 <li style="margin-bottom: 0.5rem;"><i class="bi bi-check-circle-fill" style="color: #28a745;"></i> <strong>Models:</strong> Operational</li>
 </ul>
 </div>
-<p style="font-size: 0.9em; margin-top: 1rem; color: #666;">
-<strong>Contact:</strong> Sarah Roberts (NOAA) | Josh Cullen (UCSC)
-</p>
+
+<div style="margin-top: 1.5rem; color: #444;">
+<strong>Technical Support:</strong><br>
+<ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem;">
+<li style="margin-bottom: 0.3rem;">
+<a href="mailto:sarah.roberts@noaa.gov" style="text-decoration: none; color: #005da2;">
+<i class="bi bi-envelope"></i> Sarah Roberts (NOAA)
+</a>
+</li>
+<li>
+<a href="mailto:jacullen@ucsc.edu" style="text-decoration: none; color: #005da2;">
+<i class="bi bi-envelope"></i> Josh Cullen (UCSC)
+</a>
+</li>
+</ul>
+</div>
+
 </div>
 
 </div>
