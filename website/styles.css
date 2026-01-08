@@ -1,9 +1,15 @@
-
 /* --- GLOBAL VARIABLES --- */
 :root {
   --noaa-blue: #003087;
   --noaa-accent: #005da2;
   --text-white: #ffffff;
+}
+
+/* Fix right-side whitespace issues globally */
+body {
+  overflow-x: hidden; /* Prevents horizontal scrollbar causing gaps */
+  margin: 0;
+  padding: 0;
 }
 
 /* --- FULL WIDTH HERO BANNER FIX --- */
@@ -15,8 +21,10 @@
   margin-left: -50vw;
   margin-right: -50vw;
   background-color: var(--noaa-blue);
-  margin-top: -10px; /* Pulls it up to the navbar */
-  padding: 4rem 0;
+  
+  /* UPDATED: Increased to -50px to close the top gap completely */
+  margin-top: -50px; 
+  padding: 5rem 0; /* Added slightly more padding for visual balance */
 }
 
 .hero-banner {
@@ -24,9 +32,10 @@
   margin: 0 auto;
   text-align: center;
   color: white !important;
+  padding: 0 1rem; /* Prevents text hitting edges on mobile */
 }
 
-/* Force text colors to white with high specificity */
+/* Force text colors to white */
 .hero-banner h1, .hero-banner h3, .hero-banner p {
   color: white !important;
 }
