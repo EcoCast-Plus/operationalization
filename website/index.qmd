@@ -1,20 +1,101 @@
 ---
-title: "Welcome"
-sidebar: main
+title: ""
+page-layout: full
+toc: false
+sidebar: false
 ---
 
-# Operational Tools Portal
+::: {.hero-banner}
+# EcoCast Plus
+### Operational Dynamic Ocean Management
+<p class="lead">Delivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.</p>
+:::
 
-Welcome to the operationalization hub. Please select a region from the top menu to view specific models and tools.
+::: {.column-page-inset}
 
-### Available Regions:
-- **West Coast**: Sea Turtle & EcoCast Tools
-- **Gulf of America**: Pelagic Longline Fisheries
-- **Hawaii**: (Coming Soon)
-- **South Atlantic**: (Coming Soon)
+::: {.grid .gap-4}
 
-### Contact
-For questions, please email:
+::: {.g-col-12 .g-col-md-6}
+### About the Initiative
+EcoCast Plus represents the next generation of dynamic ocean management tools. By integrating real-time oceanographic data from Copernicus Marine Service (CMEMS) and ROMS models, we generate daily predictive surfaces for target catch and bycatch species.
 
-* **Sarah Roberts:** [sarah.roberts@noaa.gov](mailto:sarah.roberts@noaa.gov)
-* **Josh Cullen:** [jacullen@ucsc.edu](mailto:jacullen@ucsc.edu)
+Our goal is to provide industry and management with the tools needed to maximize fishing opportunity while minimizing interactions with protected species.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### System Status
+::: {.callout-note appearance="simple" icon=false}
+## **System Operational**
+* **Data Feeds:** CMEMS & ROMS Live
+* **Last Update:** `r Sys.Date()`
+* **Active Regions:** West Coast, Gulf of Mexico
+:::
+:::
+
+:::
+
+<br>
+
+## Regional Toolkits
+<p style="color: #555;">Select a region to access specific operational models and interactive explorers.</p>
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6 .g-col-lg-3}
+::: {.card .h-100 .noaa-card}
+::: {.card-body}
+<h4 class="card-title">West Coast</h4>
+<p class="card-text">Leatherback sea turtle conservation and swordfish fishery management tools.</p>
+<hr>
+<a href="west_coast/leatherback.qmd" class="btn btn-primary stretched-link">Launch Explorer</a>
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6 .g-col-lg-3}
+::: {.card .h-100 .noaa-card}
+::: {.card-body}
+<h4 class="card-title">Gulf of America</h4>
+<p class="card-text">Pelagic longline fishery optimization and DeSoto Canyon closed area analysis.</p>
+<hr>
+<a href="gulf/pelagic_longline.qmd" class="btn btn-primary stretched-link">Launch Explorer</a>
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6 .g-col-lg-3}
+::: {.card .h-100 .noaa-card-disabled}
+::: {.card-body}
+<h4 class="card-title">Hawaii</h4>
+<p class="card-text">Longline deep-set fishery tools and protected species interaction models.</p>
+<hr>
+<button class="btn btn-secondary disabled">Coming Soon</button>
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6 .g-col-lg-3}
+::: {.card .h-100 .noaa-card-disabled}
+::: {.card-body}
+<h4 class="card-title">South Atlantic</h4>
+<p class="card-text">Right whale migration tracking and coastal fishery management support.</p>
+<hr>
+<button class="btn btn-secondary disabled">Coming Soon</button>
+:::
+:::
+:::
+
+:::
+
+<br><hr><br>
+
+::: {.grid}
+::: {.g-col-12 .text-center}
+### Contact & Support
+For technical inquiries or model validation questions, please contact the development team.
+
+[**Sarah Roberts** (NOAA)](mailto:sarah.roberts@noaa.gov) &nbsp;|&nbsp; [**Josh Cullen** (UCSC)](mailto:jacullen@ucsc.edu)
+:::
+:::
+
+:::
