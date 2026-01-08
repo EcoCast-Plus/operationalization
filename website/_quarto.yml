@@ -8,10 +8,11 @@ website:
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
 
-  # TOP NAVIGATION BAR
   navbar:
     background: primary
-    logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png"
+    # You might want to remove the logo from here if you use it in the hero, 
+    # but keeping it small in the nav is standard practice.
+    logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png" 
     left:
       - href: index.qmd
         text: Home
@@ -24,7 +25,6 @@ website:
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
 
-  # SIDEBAR CONFIGURATION (Merged into one block)
   page-navigation: true
   
   sidebar:
@@ -51,6 +51,7 @@ website:
             - gulf/pelagic_longline.qmd
 
     # Sidebar 3: Default/Home
+    # You can remove this block if you rely on the navbar for the homepage
     - id: main
       style: docked
       background: "#f8f9fa"
