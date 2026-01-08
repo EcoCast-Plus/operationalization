@@ -26,12 +26,23 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Welcome",
+    "title": "EcoCast Plus",
     "section": "",
-    "text": "Operational Tools Portal\nWelcome to the operationalization hub. Please select a region from the top menu to view specific models and tools.\n\nAvailable Regions:\n\nWest Coast: Sea Turtle & EcoCast Tools\nGulf of America: Pelagic Longline Fisheries\nHawaii: (Coming Soon)\nSouth Atlantic: (Coming Soon)\n\n\n\nContact\nFor questions, please email:\n\nSarah Roberts: sarah.roberts@noaa.gov\nJosh Cullen: jacullen@ucsc.edu",
+    "text": "Delivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.",
     "crumbs": [
       "Home",
-      "Welcome"
+      "EcoCast Plus"
+    ]
+  },
+  {
+    "objectID": "index.html#regional-toolkits",
+    "href": "index.html#regional-toolkits",
+    "title": "EcoCast Plus",
+    "section": "Regional Toolkits",
+    "text": "Regional Toolkits\n\nSelect a region to access specific operational models and interactive explorers.\n\n\n\n\n\n\nWest Coast\n\n\nLeatherback sea turtle conservation and swordfish fishery management tools.\n\n\nLaunch Explorer\n:::\n:::\n:::\n\n\n\n\nGulf of America\n\n\nPelagic longline fishery optimization and DeSoto Canyon closed area analysis.\n\n\nLaunch Explorer\n:::\n:::\n:::\n\n\n\n\nHawaii\n\n\nLongline deep-set fishery tools and protected species interaction models.\n\n\n\nComing Soon\n\n:::\n:::\n:::\n\n\n\n\nSouth Atlantic\n\n\nRight whale migration tracking and coastal fishery management support.\n\n\n\nComing Soon\n\n:::\n:::\n:::\n:::\n\n\n\n\n\nContact & Support\nFor technical inquiries or model validation questions, please contact the development team.\nSarah Roberts (NOAA)  |  Josh Cullen (UCSC)\n\n\n:::",
+    "crumbs": [
+      "Home",
+      "EcoCast Plus"
     ]
   },
   {

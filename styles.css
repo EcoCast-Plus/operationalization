@@ -1,35 +1,78 @@
-/* NOAA Branding Colors */
+/* NOAA Brand Colors */
 :root {
   --noaa-blue: #003087;
-  --noaa-light-blue: #0085CA;
+  --noaa-dark: #001a4d;
+  --noaa-accent: #005da2;
+  --light-gray: #f2f2f2;
 }
 
-/* Force the Navbar to use NOAA Blue */
-.navbar {
-  background-color: var(--noaa-blue) !important;
+/* Hero Banner */
+.hero-banner {
+  background-color: var(--noaa-blue);
+  color: white;
+  padding: 4rem 2rem;
+  margin-bottom: 2rem;
+  margin-top: -1rem; /* Pull up to navbar */
+  border-bottom: 5px solid var(--noaa-accent);
+  text-align: center;
 }
 
-/* Adjust the logo size in the navbar */
-.navbar-brand img {
-  height: 50px;
-  margin-right: 10px;
+.hero-banner h1 {
+  font-weight: 700;
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
 }
 
-/* Make the sidebar slightly more distinct */
-.sidebar {
-  border-right: 1px solid #dee2e6;
+.hero-banner h3 {
+  font-weight: 300;
+  opacity: 0.9;
 }
 
-/* Header styling */
-h1, h2, h3 {
+.hero-banner .lead {
+  font-size: 1.25rem;
+  max-width: 800px;
+  margin: 1.5rem auto 0;
+  opacity: 0.85;
+}
+
+/* Card Styling to look like NOAA Grid */
+.noaa-card {
+  border: none;
+  border-top: 4px solid var(--noaa-blue);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+  background-color: white;
+}
+
+.noaa-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0,0,0,0.15);
+}
+
+.noaa-card h4 {
   color: var(--noaa-blue);
   font-weight: 600;
 }
 
-/* Improve link colors */
-a {
-  color: var(--noaa-light-blue);
+.noaa-card-disabled {
+  border: none;
+  border-top: 4px solid #ccc;
+  background-color: #f9f9f9;
+  color: #666;
 }
-a:hover {
-  color: var(--noaa-blue);
+
+/* Button overrides for Zephyr theme to match NOAA Blue */
+.btn-primary {
+  background-color: var(--noaa-blue);
+  border-color: var(--noaa-blue);
+}
+
+.btn-primary:hover {
+  background-color: var(--noaa-accent);
+  border-color: var(--noaa-accent);
+}
+
+/* Navbar adjustments */
+.navbar {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
