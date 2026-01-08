@@ -26,23 +26,12 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "EcoCast Plus",
+    "title": "\nEcoCast Plus\n",
     "section": "",
-    "text": "Delivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.",
+    "text": "Operational Dynamic Ocean Management\n\n\nDelivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.\n\n\n\n\n\n\n\nRegional Toolkits\n\n\nSelect a region to access operational models.\n\n\n\n\n\n  &lt;div class=\"icon-circle\"&gt;\n    &lt;i class=\"bi bi-water\"&gt;&lt;/i&gt; &lt;/div&gt;\n  &lt;div class=\"icon-title\"&gt;West Coast&lt;/div&gt;\n  &lt;div class=\"icon-text\"&gt;Leatherback & Swordfish Tools&lt;/div&gt;\n&lt;/div&gt;\n\n\n\n  &lt;div class=\"icon-circle\"&gt;\n    &lt;i class=\"bi bi-globe-americas\"&gt;&lt;/i&gt;\n  &lt;/div&gt;\n  &lt;div class=\"icon-title\"&gt;Gulf of Mexico&lt;/div&gt;\n  &lt;div class=\"icon-text\"&gt;Pelagic Longline Optimization&lt;/div&gt;\n&lt;/div&gt;\n\n\n&lt;div class=\"icon-circle\" style=\"background-color: #ccc;\"&gt;\n  &lt;i class=\"bi bi-sun\"&gt;&lt;/i&gt;\n&lt;/div&gt;\n&lt;div class=\"icon-title\"&gt;Hawaii&lt;/div&gt;\n&lt;div class=\"icon-text\"&gt;Coming Soon&lt;/div&gt;\n\n\n&lt;div class=\"icon-circle\" style=\"background-color: #ccc;\"&gt;\n  &lt;i class=\"bi bi-map\"&gt;&lt;/i&gt;\n&lt;/div&gt;\n&lt;div class=\"icon-title\"&gt;South Atlantic&lt;/div&gt;\n&lt;div class=\"icon-text\"&gt;Coming Soon&lt;/div&gt;\n\n\n\n\n\n&lt;h4&gt;About the Initiative&lt;/h4&gt;\n&lt;p&gt;EcoCast Plus integrates real-time oceanographic data from Copernicus Marine Service (CMEMS) and ROMS models to generate daily predictive surfaces. Our goal is to maximize fishing opportunity while minimizing bycatch.&lt;/p&gt;\n\n\n&lt;h4&gt;System Status&lt;/h4&gt;\n&lt;ul style=\"list-style-type: none; padding-left: 0;\"&gt;\n  &lt;li&gt;&lt;i class=\"bi bi-check-circle-fill\" style=\"color: green;\"&gt;&lt;/i&gt; &lt;strong&gt;Data Feeds:&lt;/strong&gt; Active&lt;/li&gt;\n  &lt;li&gt;&lt;i class=\"bi bi-check-circle-fill\" style=\"color: green;\"&gt;&lt;/i&gt; &lt;strong&gt;Models:&lt;/strong&gt; Operational&lt;/li&gt;\n  &lt;li&gt;&lt;i class=\"bi bi-clock\"&gt;&lt;/i&gt; &lt;strong&gt;Last Update:&lt;/strong&gt; `r Sys.Date()`&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p style=\"font-size: 0.9em; margin-top: 1rem;\"&gt;\n  &lt;strong&gt;Contact:&lt;/strong&gt;&lt;br&gt;\n  Sarah Roberts (NOAA) | Josh Cullen (UCSC)\n&lt;/p&gt;\n\n\n:::",
     "crumbs": [
       "Home",
-      "EcoCast Plus"
-    ]
-  },
-  {
-    "objectID": "index.html#regional-toolkits",
-    "href": "index.html#regional-toolkits",
-    "title": "EcoCast Plus",
-    "section": "Regional Toolkits",
-    "text": "Regional Toolkits\n\nSelect a region to access specific operational models and interactive explorers.\n\n\n\n\n\n\nWest Coast\n\n\nLeatherback sea turtle conservation and swordfish fishery management tools.\n\n\nLaunch Explorer\n:::\n:::\n:::\n\n\n\n\nGulf of America\n\n\nPelagic longline fishery optimization and DeSoto Canyon closed area analysis.\n\n\nLaunch Explorer\n:::\n:::\n:::\n\n\n\n\nHawaii\n\n\nLongline deep-set fishery tools and protected species interaction models.\n\n\n\nComing Soon\n\n:::\n:::\n:::\n\n\n\n\nSouth Atlantic\n\n\nRight whale migration tracking and coastal fishery management support.\n\n\n\nComing Soon\n\n:::\n:::\n:::\n:::\n\n\n\n\n\nContact & Support\nFor technical inquiries or model validation questions, please contact the development team.\nSarah Roberts (NOAA)  |  Josh Cullen (UCSC)\n\n\n:::",
-    "crumbs": [
-      "Home",
-      "EcoCast Plus"
+      "index.html"
     ]
   },
   {
