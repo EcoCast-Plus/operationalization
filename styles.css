@@ -7,24 +7,29 @@
 
 /* Fix right-side whitespace issues globally */
 body {
-  overflow-x: hidden; /* Prevents horizontal scrollbar causing gaps */
+  overflow-x: hidden; /* Critical: hides the horizontal scrollbar */
   margin: 0;
   padding: 0;
 }
 
 /* --- FULL WIDTH HERO BANNER FIX --- */
 .hero-wrapper {
-  width: 100vw;
+  /* 1. FORCE FULL WIDTH (Edge-to-Edge) */
+  width: 100vw; 
   position: relative;
   left: 50%;
   right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  
+  /* This method is more stable than margins for edge-alignment */
+  transform: translateX(-50%); 
+  
   background-color: var(--noaa-blue);
   
-  /* UPDATED: Increased to -50px to close the top gap completely */
-  margin-top: -50px; 
-  padding: 5rem 0; /* Added slightly more padding for visual balance */
+  /* 2. ADJUST HEIGHT & POSITION */
+  margin-top: -50px; /* Pulls up to navbar */
+  
+  /* REDUCED PADDING: Makes the banner smaller top-to-bottom */
+  padding: 2.5rem 0; 
 }
 
 .hero-banner {
@@ -32,7 +37,7 @@ body {
   margin: 0 auto;
   text-align: center;
   color: white !important;
-  padding: 0 1rem; /* Prevents text hitting edges on mobile */
+  padding: 0 1rem;
 }
 
 /* Force text colors to white */
@@ -42,15 +47,15 @@ body {
 
 .hero-banner h1 {
   font-weight: 800;
-  font-size: 3.5rem;
+  font-size: 3rem; /* Slightly smaller font to match shorter banner */
   margin-bottom: 0.5rem;
 }
 
 .hero-banner .lead {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 300;
   opacity: 0.9;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 /* --- ICON GRID LAYOUT --- */
@@ -91,6 +96,14 @@ body {
   background-color: var(--noaa-accent);
 }
 
+/* --- IMAGE ICONS --- */
+.icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 /* Disabled State */
 .disabled-item {
   opacity: 0.5;
@@ -101,6 +114,10 @@ body {
 }
 .disabled-circle {
   background-color: #ccc;
+}
+.disabled-item .icon-img {
+  filter: grayscale(100%);
+  opacity: 0.5;
 }
 
 /* Text Styling */
@@ -122,23 +139,18 @@ a.icon-link {
   color: inherit;
 }
 
-/* --- NEW: CENTERED LAYOUT TWEAKS (No Sidebar) --- */
-
-/* 1. Center the Main Page Title on full-width pages */
+/* --- CENTERED LAYOUT TWEAKS --- */
 header#title-block-header {
   max-width: 1200px;
-  margin: 2rem auto 2rem auto; /* Centered with top/bottom margin */
+  margin: 2rem auto 2rem auto;
   padding: 0 1rem;
 }
 
-/* 2. Ensure standard text content (About pages) is centered and readable */
-/* This prevents paragraphs from stretching 2000px wide on big screens */
 .column-page-inset {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-/* 3. Tweak Navbar Dropdowns to match NOAA blue */
 .dropdown-menu {
   border-top: 3px solid var(--noaa-accent);
 }
