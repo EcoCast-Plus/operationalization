@@ -121,3 +121,29 @@ a.icon-link {
   text-decoration: none;
   color: inherit;
 }
+
+/* --- NEW: CENTERED LAYOUT TWEAKS (No Sidebar) --- */
+
+/* 1. Center the Main Page Title on full-width pages */
+header#title-block-header {
+  max-width: 1200px;
+  margin: 2rem auto 2rem auto; /* Centered with top/bottom margin */
+  padding: 0 1rem;
+}
+
+/* 2. Ensure standard text content (About pages) is centered and readable */
+/* This prevents paragraphs from stretching 2000px wide on big screens */
+.column-page-inset {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 3. Tweak Navbar Dropdowns to match NOAA blue */
+.dropdown-menu {
+  border-top: 3px solid var(--noaa-accent);
+}
+
+.dropdown-item:active, .dropdown-item:focus {
+  background-color: var(--noaa-blue);
+  color: white;
+}
