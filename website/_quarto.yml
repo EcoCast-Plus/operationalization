@@ -8,7 +8,6 @@ website:
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
 
-  # TOP NAVIGATION BAR WITH DROPDOWNS
   navbar:
     background: primary
     logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png"
@@ -16,33 +15,37 @@ website:
       - href: index.qmd
         text: Home
       
-      # West Coast Dropdown
+      # WEST COAST (Nested Dropdown)
       - text: "West Coast"
         menu:
-          - text: "Leatherback Explorer"
-            href: west_coast/leatherback.qmd
-          - text: "LBST & CMEMS Data"
-            href: west_coast/lbst_cmems.qmd
+          - text: "Sea Turtles"       # <--- Level 1: Species Group
+            menu:                     # <--- Level 2: The actual tools
+              - text: "Leatherback DOM Tools"
+                href: west_coast/leatherback.qmd
+              - text: "Leatherback CMEMS Model"
+                href: west_coast/lbst_cmems.qmd
+          
+          # You can add other groups here later, e.g.:
+          # - text: "Whales"
+          #   menu: [...]
 
-      # Gulf Dropdown
+      # GULF (Single Dropdown)
       - text: "Gulf of America"
         menu:
           - text: "Pelagic Longline Explorer"
             href: gulf/pelagic_longline.qmd
 
-      # Placeholders (No dropdown yet, just single links or disabled)
       - text: "Hawaii"
         href: hawaii/placeholder.qmd
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
 
-  # Sidebar removed entirely to allow full-width centered design
   page-navigation: true
 
 format:
   html:
     theme: zephyr
-    toc: false      # Disable "On this page" globally (optional, nice for maps)
+    toc: false
     css: styles.css
     mainfont: "Segoe UI, sans-serif"
 
