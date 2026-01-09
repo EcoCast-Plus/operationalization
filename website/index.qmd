@@ -40,7 +40,7 @@ css: styles.css
 <div class="icon-circle">
 <i class="bi bi-globe-americas"></i>
 </div>
-<div class="icon-title">Gulf of Mexico</div>
+<div class="icon-title">Gulf of America</div>
 <div class="icon-text">Pelagic Longline Optimization</div>
 </div>
 </a>
