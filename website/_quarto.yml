@@ -15,26 +15,25 @@ website:
       - href: index.qmd
         text: Home
       
-      # WEST COAST (Nested Dropdown)
+      # WEST COAST (Flattened)
       - text: "West Coast"
         menu:
-          - text: "Sea Turtles"       # <--- Level 1: Species Group
-            menu:                     # <--- Level 2: The actual tools
-              - text: "Leatherback DOM Tools"
-                href: west_coast/leatherback.qmd
-              - text: "Leatherback CMEMS Model"
-                href: west_coast/lbst_cmems.qmd
+          # This acts as a Section Header (no link, no sub-menu)
+          - text: "--- Sea Turtles ---"
           
-          # You can add other groups here later, e.g.:
-          # - text: "Whales"
-          #   menu: [...]
+          # The tools listed directly below
+          - text: "Leatherback Explorer"
+            href: west_coast/leatherback.qmd
+          - text: "LBST & CMEMS Data"
+            href: west_coast/lbst_cmems.qmd
 
-      # GULF (Single Dropdown)
+      # GULF OF AMERICA
       - text: "Gulf of America"
         menu:
           - text: "Pelagic Longline Explorer"
             href: gulf/pelagic_longline.qmd
 
+      # PLACEHOLDERS
       - text: "Hawaii"
         href: hawaii/placeholder.qmd
       - text: "South Atlantic"
