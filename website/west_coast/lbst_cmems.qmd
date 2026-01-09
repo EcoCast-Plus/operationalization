@@ -1,5 +1,6 @@
 ---
 title: "Leatherback CMEMS model"
+page-layout: full
 toc: false
 editor: 
   markdown: 

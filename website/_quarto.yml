@@ -8,59 +8,44 @@ website:
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
 
-  # TOP NAVIGATION BAR
   navbar:
     background: primary
     logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png"
     left:
       - href: index.qmd
         text: Home
+      
+      # WEST COAST (Nested Dropdown)
       - text: "West Coast"
-        href: west_coast/leatherback.qmd
+        menu:
+          - text: "Sea Turtles"       # <--- Level 1: Species Group
+            menu:                     # <--- Level 2: The actual tools
+              - text: "Leatherback DOM Tools"
+                href: west_coast/leatherback.qmd
+              - text: "Leatherback CMEMS Model"
+                href: west_coast/lbst_cmems.qmd
+          
+          # You can add other groups here later, e.g.:
+          # - text: "Whales"
+          #   menu: [...]
+
+      # GULF (Single Dropdown)
       - text: "Gulf of America"
-        href: gulf/pelagic_longline.qmd
+        menu:
+          - text: "Pelagic Longline Explorer"
+            href: gulf/pelagic_longline.qmd
+
       - text: "Hawaii"
         href: hawaii/placeholder.qmd
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
 
-  # SIDEBAR CONFIGURATION (Merged into one block)
   page-navigation: true
-  
-  sidebar:
-    # Sidebar 1: West Coast
-    - id: west_coast
-      title: "West Coast Tools"
-      style: docked
-      background: "#f8f9fa"
-      collapse-level: 1
-      contents:
-        - section: "Sea Turtles"
-          contents:
-            - west_coast/leatherback.qmd
-            - west_coast/lbst_cmems.qmd
-
-    # Sidebar 2: Gulf of America
-    - id: gulf
-      title: "Gulf Tools"
-      style: docked
-      background: "#f8f9fa"
-      contents:
-        - section: "Fisheries"
-          contents:
-            - gulf/pelagic_longline.qmd
-
-    # Sidebar 3: Default/Home
-    - id: main
-      style: docked
-      background: "#f8f9fa"
-      contents:
-        - index.qmd
 
 format:
   html:
     theme: zephyr
-    toc: true
+    toc: false
     css: styles.css
     mainfont: "Segoe UI, sans-serif"
 

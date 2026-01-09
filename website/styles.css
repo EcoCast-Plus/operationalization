@@ -1,35 +1,149 @@
-/* NOAA Branding Colors */
+/* --- GLOBAL VARIABLES --- */
 :root {
   --noaa-blue: #003087;
-  --noaa-light-blue: #0085CA;
+  --noaa-accent: #005da2;
+  --text-white: #ffffff;
 }
 
-/* Force the Navbar to use NOAA Blue */
-.navbar {
-  background-color: var(--noaa-blue) !important;
+/* Fix right-side whitespace issues globally */
+body {
+  overflow-x: hidden; /* Prevents horizontal scrollbar causing gaps */
+  margin: 0;
+  padding: 0;
 }
 
-/* Adjust the logo size in the navbar */
-.navbar-brand img {
-  height: 50px;
-  margin-right: 10px;
+/* --- FULL WIDTH HERO BANNER FIX --- */
+.hero-wrapper {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: var(--noaa-blue);
+  
+  /* UPDATED: Increased to -50px to close the top gap completely */
+  margin-top: -50px; 
+  padding: 5rem 0; /* Added slightly more padding for visual balance */
 }
 
-/* Make the sidebar slightly more distinct */
-.sidebar {
-  border-right: 1px solid #dee2e6;
+.hero-banner {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+  color: white !important;
+  padding: 0 1rem; /* Prevents text hitting edges on mobile */
 }
 
-/* Header styling */
-h1, h2, h3 {
-  color: var(--noaa-blue);
-  font-weight: 600;
+/* Force text colors to white */
+.hero-banner h1, .hero-banner h3, .hero-banner p {
+  color: white !important;
 }
 
-/* Improve link colors */
-a {
-  color: var(--noaa-light-blue);
+.hero-banner h1 {
+  font-weight: 800;
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
 }
-a:hover {
-  color: var(--noaa-blue);
+
+.hero-banner .lead {
+  font-size: 1.4rem;
+  font-weight: 300;
+  opacity: 0.9;
+  margin-top: 1rem;
+}
+
+/* --- ICON GRID LAYOUT --- */
+.icon-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.icon-item {
+  width: 180px;
+  text-align: center;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.icon-item:hover {
+  transform: translateY(-5px);
+}
+
+.icon-circle {
+  background-color: var(--noaa-blue);
+  color: white;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  margin: 0 auto 1rem auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.icon-item:hover .icon-circle {
+  background-color: var(--noaa-accent);
+}
+
+/* Disabled State */
+.disabled-item {
+  opacity: 0.5;
+  cursor: default;
+}
+.disabled-item:hover {
+  transform: none;
+}
+.disabled-circle {
+  background-color: #ccc;
+}
+
+/* Text Styling */
+.icon-title {
+  font-weight: 700;
+  color: #333;
+  font-size: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+
+.icon-text {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+a.icon-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* --- NEW: CENTERED LAYOUT TWEAKS (No Sidebar) --- */
+
+/* 1. Center the Main Page Title on full-width pages */
+header#title-block-header {
+  max-width: 1200px;
+  margin: 2rem auto 2rem auto; /* Centered with top/bottom margin */
+  padding: 0 1rem;
+}
+
+/* 2. Ensure standard text content (About pages) is centered and readable */
+/* This prevents paragraphs from stretching 2000px wide on big screens */
+.column-page-inset {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 3. Tweak Navbar Dropdowns to match NOAA blue */
+.dropdown-menu {
+  border-top: 3px solid var(--noaa-accent);
+}
+
+.dropdown-item:active, .dropdown-item:focus {
+  background-color: var(--noaa-blue);
+  color: white;
 }
