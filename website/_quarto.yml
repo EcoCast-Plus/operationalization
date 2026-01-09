@@ -8,60 +8,41 @@ website:
   repo-url: https://github.com/EcoCast-Plus/operationalization
   repo-subdir: website
 
+  # TOP NAVIGATION BAR WITH DROPDOWNS
   navbar:
     background: primary
-    # You might want to remove the logo from here if you use it in the hero, 
-    # but keeping it small in the nav is standard practice.
-    logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png" 
+    logo: "https://www.noaa.gov/sites/default/files/2022-03/noaa_emblem_logo-2022.png"
     left:
       - href: index.qmd
         text: Home
+      
+      # West Coast Dropdown
       - text: "West Coast"
-        href: west_coast/leatherback.qmd
+        menu:
+          - text: "Leatherback Explorer"
+            href: west_coast/leatherback.qmd
+          - text: "LBST & CMEMS Data"
+            href: west_coast/lbst_cmems.qmd
+
+      # Gulf Dropdown
       - text: "Gulf of America"
-        href: gulf/pelagic_longline.qmd
+        menu:
+          - text: "Pelagic Longline Explorer"
+            href: gulf/pelagic_longline.qmd
+
+      # Placeholders (No dropdown yet, just single links or disabled)
       - text: "Hawaii"
         href: hawaii/placeholder.qmd
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
 
+  # Sidebar removed entirely to allow full-width centered design
   page-navigation: true
-  
-  sidebar:
-    # Sidebar 1: West Coast
-    - id: west_coast
-      title: "West Coast Tools"
-      style: docked
-      background: "#f8f9fa"
-      collapse-level: 1
-      contents:
-        - section: "Sea Turtles"
-          contents:
-            - west_coast/leatherback.qmd
-            - west_coast/lbst_cmems.qmd
-
-    # Sidebar 2: Gulf of America
-    - id: gulf
-      title: "Gulf Tools"
-      style: docked
-      background: "#f8f9fa"
-      contents:
-        - section: "Fisheries"
-          contents:
-            - gulf/pelagic_longline.qmd
-
-    # Sidebar 3: Default/Home
-    # You can remove this block if you rely on the navbar for the homepage
-    - id: main
-      style: docked
-      background: "#f8f9fa"
-      contents:
-        - index.qmd
 
 format:
   html:
     theme: zephyr
-    toc: true
+    toc: false      # Disable "On this page" globally (optional, nice for maps)
     css: styles.css
     mainfont: "Segoe UI, sans-serif"
 
