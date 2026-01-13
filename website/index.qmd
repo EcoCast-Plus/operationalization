@@ -40,7 +40,7 @@ css: styles.css
 <div class="icon-circle">
 <img src="images/icon_gulf.png" class="icon-img" alt="Gulf of America">
 </div>
-<div class="icon-title">Gulf of Mexico</div>
+<div class="icon-title">Gulf of America</div>
 <div class="icon-text">Pelagic Longline Optimization</div>
 </div>
 </a>
