@@ -33,19 +33,46 @@ message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 # ----------------------------------------------------------------
 # HELPER: Smart File Finder
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
+# HELPER: Smart File Finder (With Fallback)
+# ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
+  # 1. Determine the ideal target date
   target_date <- date_forecast
   
-  # MLD is Forecast (Dec 19), Obs are Past (Dec 17)
+  # Forecast vars use date_forecast (Tomorrow)
+  # Observation vars use date_obs (Yesterday)
   obs_vars <- c("l.chl", "sla", "sst", "analysed_sst", "ugosa", "vgosa")
-  
   if (var_name %in% obs_vars) target_date <- date_obs
   
-  pattern <- glue("_{var_name}_{target_date}")
-  files <- list.files(search_dir, pattern = pattern, full.names = TRUE)
+  # 2. Try to find the EXACT match first
+  pattern_exact <- glue("_{var_name}_{target_date}")
+  files_exact <- list.files(search_dir, pattern = pattern_exact, full.names = TRUE)
   
-  if (length(files) == 0) stop(glue("MISSING FILE: {var_name} for {target_date}"))
-  return(files[1])
+  if (length(files_exact) > 0) {
+    return(files_exact[1])
+  }
+  
+  # 3. Fallback: Search for the most recent available file
+  message(glue("NOTICE: Exact file missing for {var_name} on {target_date}. Searching for most recent..."))
+  
+  # Pattern matches the variable name followed by ANY date (YYYY-MM-DD)
+  # Assumes files are named like: prefix_varname_YYYY-MM-DD.nc
+  pattern_general <- glue("_{var_name}_\\d{{4}}-\\d{{2}}-\\d{{2}}")
+  files_all <- list.files(search_dir, pattern = pattern_general, full.names = TRUE)
+  
+  if (length(files_all) == 0) {
+    stop(glue("CRITICAL ERROR: No files found for variable '{var_name}' in {search_dir}"))
+  }
+  
+  # Sort descending (newest dates first) and pick the top one
+  files_sorted <- sort(files_all, decreasing = TRUE)
+  best_file <- files_sorted[1]
+  
+  # Extract filename to notify user which date is being used
+  message(glue(" -> Found substitute: {basename(best_file)}"))
+  
+  return(best_file)
 }
 
 # ----------------------------------------------------------------
