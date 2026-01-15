@@ -183,9 +183,8 @@ r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle
 # Placeholders
 r_fronts      <- master_grid * 0; names(r_fronts)       <- "front_z"
 r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
-r_j_rule  <- master_grid * 0 + 1L; names(r_j_rule) <- "j_rule" 
 # Combine Final Stack
-full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_j_rule, r_striparea)
+full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
 # ----------------------------------------------------------------
 # 5b. [CRITICAL FIX] Create Two Prediction Dataframes
@@ -199,7 +198,6 @@ prepare_df <- function(stack_in) {
   if (nrow(df) > 0) {
     # Type Casting
     if("hooks_rule" %in% names(df)) df$hooks_rule <- as.integer(df$hooks_rule)
-    if("j_rule" %in% names(df)) df$j_rule <- as.integer(df$j_rule)
     if("doy" %in% names(df))        df$doy        <- as.integer(df$doy)
     if("month" %in% names(df))      df$month      <- as.integer(df$month)
     
@@ -237,7 +235,7 @@ fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
   "tke", "thetao_150m", "thetao_500m", "day_hours", "night_hours", 
-  "hooks_rule", "j_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
+  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
 )
 
 inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
