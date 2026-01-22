@@ -15,6 +15,8 @@ library(stacks)
 library(tidymodels)
 library(workflows)
 library(tidysdm)     # [CRITICAL] Required for Ensemble model dispatch
+library(grec)
+library(raster)
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
@@ -90,38 +92,72 @@ validate_layer <- function(r, name, master_grid) {
   return(r)
 }
 
-# ----------------------------------------------------------------
-# 4. LOAD & PROCESS ENVIRONMENTAL DATA
-# ----------------------------------------------------------------
+# --- 4. LOAD & PROCESS ENVIRONMENTAL DATA (CORRECTED) ---
 message("Loading Dynamic Environmental Data...")
 
 load_raw <- function(var_name, nc_var) {
-  r <- rast(find_file(var_name, raw_dir))[nc_var]
+  # Add error handling if file not found
+  f <- find_file(var_name, raw_dir)
+  r <- rast(f)[nc_var]
   return(r[[1]]) 
 }
 
-# Load Raw Layers
+# 1. Load Standard Layers
 r_sst        <- load_raw("thetao", "thetao") 
 master_grid  <- r_sst 
 
 r_ssh        <- load_raw("ssh", "zos")
 r_chl        <- load_raw("l.chl", "CHL")
-r_uo         <- load_raw("uo", "uo")
-r_vo         <- load_raw("vo", "vo")
+r_uo         <- load_raw("uo", "uo")     # Total Eastward Current
+r_vo         <- load_raw("vo", "vo")     # Total Northward Current
+
+# 2. [NEW] Load Geostrophic Anomalies (Required for EKE)
+# Note: Check if these variable names ('ugosa', 'vgosa') match your SSH NetCDF file
+r_ugosa      <- load_raw("ugosa", "ugosa") 
+r_vgosa      <- load_raw("vgosa", "vgosa")
+
+# 3. Load Subsurface & Others
 r_bottom_t   <- load_raw("bottom_t", "tob")
 r_thetao_150 <- load_raw("thetao_150m", "thetao")
 r_thetao_500 <- load_raw("thetao_500m", "thetao")
 r_mld        <- load_raw("mld", "mlotst")
 r_so         <- load_raw("so", "so")
-r_ugosa <- load_raw("ugosa", "ugosa") 
-r_vgosa <- load_raw("vgosa", "vgosa")
 
-# Calculate Derived
-message("Calculating Derived Variables (EKE, TKE)...")
-r_eke <- 0.5 * (r_ugosa^2 + r_vgosa^2)
+# ---------------------------------------------------------
+# 4. [CRITICAL FIX] Calculate Derived Variables Correctly
+# ---------------------------------------------------------
+message("Calculating Derived Variables (EKE, TKE, Fronts)...")
+
+# A. TKE (Total Kinetic Energy) -> Uses Total Currents (uo/vo)
 r_tke <- 0.5 * (r_uo^2 + r_vo^2)
 
-# Stack
+# B. EKE (Eddy Kinetic Energy) -> Uses Geostrophic Anomalies (ugosa/vgosa)
+r_eke <- 0.5 * (r_ugosa^2 + r_vgosa^2)
+
+# C. SST Fronts (Frontal Intensity)
+# Matches your training method using 'grec'
+message(" -> Detecting SST Fronts...")
+# grec requires a 'RasterLayer' (raster package), not 'SpatRaster' (terra)
+r_sst_raster <- raster::raster(r_sst) 
+
+# Detect fronts
+r_fronts_raw <- grec::detectFronts(r_sst_raster, method = "median_filter", intermediate = FALSE)
+
+# Convert back to terra::rast and normalize (if your training data was normalized)
+r_fronts <- rast(r_fronts_raw)
+
+# Optional: Normalize 0-1 if your training data was normalized
+# min_val <- global(r_fronts, "min", na.rm=TRUE)$min
+# max_val <- global(r_fronts, "max", na.rm=TRUE)$max
+# r_fronts <- (r_fronts - min_val) / (max_val - min_val)
+
+# Safety check to match grid
+r_fronts <- resample(r_fronts, master_grid)
+names(r_fronts) <- "front_z"
+
+# ---------------------------------------------------------
+# 5. Stack Everything
+# ---------------------------------------------------------
 env_stack_dynamic <- c(
   validate_layer(r_sst, "thetao", master_grid),
   validate_layer(r_chl, "chl", master_grid),
@@ -129,8 +165,9 @@ env_stack_dynamic <- c(
   validate_layer(r_bottom_t, "bottom_t", master_grid),
   validate_layer(r_thetao_150, "thetao_150m", master_grid),
   validate_layer(r_thetao_500, "thetao_500m", master_grid),
-  validate_layer(r_eke, "eke", master_grid),
-  validate_layer(r_tke, "tke", master_grid),
+  validate_layer(r_eke, "eke", master_grid),       # Now Correct
+  validate_layer(r_tke, "tke", master_grid),       # Now Correct
+  validate_layer(r_fronts, "front_z", master_grid), # Now Calculated
   validate_layer(r_mld, "mlotst", master_grid),
   validate_layer(r_so, "so", master_grid),
   validate_layer(r_uo, "uo", master_grid),
