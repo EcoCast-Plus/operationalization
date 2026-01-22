@@ -113,10 +113,12 @@ r_thetao_150 <- load_raw("thetao_150m", "thetao")
 r_thetao_500 <- load_raw("thetao_500m", "thetao")
 r_mld        <- load_raw("mld", "mlotst")
 r_so         <- load_raw("so", "so")
+r_ugosa <- load_raw("ugosa", "ugosa") 
+r_vgosa <- load_raw("vgosa", "vgosa")
 
 # Calculate Derived
 message("Calculating Derived Variables (EKE, TKE)...")
-r_eke <- 0.5 * (r_uo^2 + r_vo^2)
+r_eke <- 0.5 * (r_ugosa^2 + r_vgosa^2)
 r_tke <- 0.5 * (r_uo^2 + r_vo^2)
 
 # Stack
