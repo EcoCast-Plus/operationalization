@@ -54,6 +54,7 @@ jobs:
           any::parsnip
           any::remotes
           any::grec
+          any::ncdf4
 
     # 2. [CRITICAL FIX] Force-install the exact XGBoost version from your local machine
     - name: Force Compatible Model Packages
