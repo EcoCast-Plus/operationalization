@@ -141,17 +141,22 @@ message(" -> Detecting SST Fronts...")
 r_sst_raster <- raster::raster(r_sst) 
 
 # Detect fronts
-r_fronts_raw <- grec::detectFronts(r_sst_raster, method = "median_filter", intermediate = FALSE)
+r_fronts_raw <- grec::detectFronts(r_sst_raster, method = "BelkinOReilly2009", intermediate = FALSE)
 
 # Convert back to terra::rast and normalize (if your training data was normalized)
 r_fronts <- rast(r_fronts_raw)
 
-# Optional: Normalize 0-1 if your training data was normalized
-# min_val <- global(r_fronts, "min", na.rm=TRUE)$min
-# max_val <- global(r_fronts, "max", na.rm=TRUE)$max
-# r_fronts <- (r_fronts - min_val) / (max_val - min_val)
+# 4. Normalize (CRITICAL: Matches training logic 'fronts / max_val')
+# This scales the daily gradients to a 0-1 range relative to the strongest front that day.
+max_val <- global(r_fronts, "max", na.rm = TRUE)$max
 
-# Safety check to match grid
+if (is.na(max_val) || max_val == 0) {
+  r_fronts <- r_fronts * 0
+} else {
+  r_fronts <- r_fronts / max_val
+}
+
+# 5. Safety check to match grid
 r_fronts <- resample(r_fronts, master_grid)
 names(r_fronts) <- "front_z"
 
