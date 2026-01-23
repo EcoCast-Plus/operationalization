@@ -282,8 +282,8 @@ fishery_predictors <- c(
   "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
 )
 
-inputs_swordfish <- list(number_light_sticks = 200, number_of_floats = 30, soak_duration = 12, day_hours = 2, night_hours = 10)
-inputs_yellowfin <- list(number_light_sticks = 50, number_of_floats = 40, soak_duration = 8, day_hours = 7, night_hours = 1)
+inputs_swordfish <- list(number_light_sticks = 352, number_of_floats = 193, soak_duration = 8, day_hours = 2, night_hours = 2)
+inputs_yellowfin <- list(number_light_sticks = 22, number_of_floats = 167, soak_duration = 7, day_hours = 4, night_hours = .2)
 
 model_files <- list.files(models_dir, pattern = "\\.rds$", full.names = TRUE)
 message(glue("Found {length(model_files)} models. Starting predictions..."))
