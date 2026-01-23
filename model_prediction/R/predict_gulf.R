@@ -34,10 +34,7 @@ date_obs      <- Sys.Date() - 1
 message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 
 # ----------------------------------------------------------------
-# HELPER: Smart File Finder
-# ----------------------------------------------------------------
-# ----------------------------------------------------------------
-# HELPER: Smart File Finder (With Fallback)
+# HELPER: Smart File Finder (Updated logic)
 # ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
   # 1. Determine the ideal target date
@@ -45,6 +42,7 @@ find_file <- function(var_name, search_dir) {
   
   # Forecast vars use date_forecast (Tomorrow)
   # Observation vars use date_obs (Yesterday)
+  # Note: Added "ugosa" and "vgosa" explicitly here if they are observational NRT products
   obs_vars <- c("l.chl", "sla", "sst", "analysed_sst", "ugosa", "vgosa")
   if (var_name %in% obs_vars) target_date <- date_obs
   
@@ -59,8 +57,6 @@ find_file <- function(var_name, search_dir) {
   # 3. Fallback: Search for the most recent available file
   message(glue("NOTICE: Exact file missing for {var_name} on {target_date}. Searching for most recent..."))
   
-  # Pattern matches the variable name followed by ANY date (YYYY-MM-DD)
-  # Assumes files are named like: prefix_varname_YYYY-MM-DD.nc
   pattern_general <- glue("_{var_name}_\\d{{4}}-\\d{{2}}-\\d{{2}}")
   files_all <- list.files(search_dir, pattern = pattern_general, full.names = TRUE)
   
@@ -72,9 +68,7 @@ find_file <- function(var_name, search_dir) {
   files_sorted <- sort(files_all, decreasing = TRUE)
   best_file <- files_sorted[1]
   
-  # Extract filename to notify user which date is being used
   message(glue(" -> Found substitute: {basename(best_file)}"))
-  
   return(best_file)
 }
 
@@ -97,8 +91,8 @@ validate_layer <- function(r, name, master_grid) {
 message("Loading Dynamic Environmental Data...")
 
 load_raw <- function(var_name, nc_var) {
-  # Add error handling if file not found
   f <- find_file(var_name, raw_dir)
+  # Handle files that might have different internal var names if needed
   r <- rast(f)[nc_var]
   return(r[[1]]) 
 }
@@ -112,8 +106,9 @@ r_chl        <- load_raw("l.chl", "CHL")
 r_uo         <- load_raw("uo", "uo")     # Total Eastward Current
 r_vo         <- load_raw("vo", "vo")     # Total Northward Current
 
-# 2. [NEW] Load Geostrophic Anomalies (Required for EKE)
-# Note: Check if these variable names ('ugosa', 'vgosa') match your SSH NetCDF file
+# 2. [UPDATED] Load Geostrophic Anomalies (Required for EKE)
+# Now looking for files with "ugosa" and "vgosa" in the filename
+# AND extracting the variable "ugosa" and "vgosa" respectively.
 r_ugosa      <- load_raw("ugosa", "ugosa") 
 r_vgosa      <- load_raw("vgosa", "vgosa")
 
@@ -125,7 +120,7 @@ r_mld        <- load_raw("mld", "mlotst")
 r_so         <- load_raw("so", "so")
 
 # ---------------------------------------------------------
-# 4. [CRITICAL FIX] Calculate Derived Variables Correctly
+# 4. Calculate Derived Variables Correctly
 # ---------------------------------------------------------
 message("Calculating Derived Variables (EKE, TKE, Fronts)...")
 
@@ -133,31 +128,27 @@ message("Calculating Derived Variables (EKE, TKE, Fronts)...")
 r_tke <- 0.5 * (r_uo^2 + r_vo^2)
 
 # B. EKE (Eddy Kinetic Energy) -> Uses Geostrophic Anomalies (ugosa/vgosa)
+# Check for NAs in ugosa/vgosa specifically to debug "all 0" issue
+if(all(is.na(values(r_ugosa))) || all(is.na(values(r_vgosa)))) {
+    message("WARNING: ugosa or vgosa layers are empty. EKE will be 0.")
+}
 r_eke <- 0.5 * (r_ugosa^2 + r_vgosa^2)
 
 # C. SST Fronts (Frontal Intensity)
-# Matches your training method using 'grec'
-message(" -> Detecting SST Fronts...")
-# grec requires a 'RasterLayer' (raster package), not 'SpatRaster' (terra)
+message(" -> Detecting SST Fronts (BelkinOReilly2009)...")
 r_sst_raster <- raster::raster(r_sst) 
 
-# Detect fronts
 r_fronts_raw <- grec::detectFronts(r_sst_raster, method = "BelkinOReilly2009", intermediate = FALSE)
-
-# Convert back to terra::rast and normalize (if your training data was normalized)
 r_fronts <- rast(r_fronts_raw)
 
-# 4. Normalize (CRITICAL: Matches training logic 'fronts / max_val')
-# This scales the daily gradients to a 0-1 range relative to the strongest front that day.
+# Normalize
 max_val <- global(r_fronts, "max", na.rm = TRUE)$max
-
 if (is.na(max_val) || max_val == 0) {
   r_fronts <- r_fronts * 0
 } else {
   r_fronts <- r_fronts / max_val
 }
 
-# 5. Safety check to match grid
 r_fronts <- resample(r_fronts, master_grid)
 names(r_fronts) <- "front_z"
 
@@ -171,9 +162,9 @@ env_stack_dynamic <- c(
   validate_layer(r_bottom_t, "bottom_t", master_grid),
   validate_layer(r_thetao_150, "thetao_150m", master_grid),
   validate_layer(r_thetao_500, "thetao_500m", master_grid),
-  validate_layer(r_eke, "eke", master_grid),       # Now Correct
-  validate_layer(r_tke, "tke", master_grid),       # Now Correct
-  validate_layer(r_fronts, "front_z", master_grid), # Now Calculated
+  validate_layer(r_eke, "eke", master_grid),       
+  validate_layer(r_tke, "tke", master_grid),       
+  validate_layer(r_fronts, "front_z", master_grid), 
   validate_layer(r_mld, "mlotst", master_grid),
   validate_layer(r_so, "so", master_grid),
   validate_layer(r_uo, "uo", master_grid),
@@ -227,15 +218,15 @@ r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle
 
 # Placeholders
 r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
+
 # Combine Final Stack
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
 
 # ----------------------------------------------------------------
-# 5b. [CRITICAL FIX] Create Two Prediction Dataframes
+# 5b. Create Two Prediction Dataframes
 # ----------------------------------------------------------------
 message("Preparing Prediction Dataframes...")
 
-# Function to prepare dataframe (handles aliases and types)
 prepare_df <- function(stack_in) {
   df <- as.data.frame(stack_in, xy = TRUE, na.rm = TRUE)
   
@@ -245,7 +236,7 @@ prepare_df <- function(stack_in) {
     if("doy" %in% names(df))        df$doy        <- as.integer(df$doy)
     if("month" %in% names(df))      df$month      <- as.integer(df$month)
     
-    # Aliases (for models trained with different names)
+    # Aliases
     if("chl" %in% names(df))         df$ChlA       <- df$chl
     if("thetao" %in% names(df))      df$SST        <- df$thetao
     if("zos" %in% names(df))         df$SSH        <- df$zos
@@ -256,11 +247,10 @@ prepare_df <- function(stack_in) {
   return(df)
 }
 
-# 1. Fishery DF: Uses ALL variables (Deep water constrained by thetao_150m/500m NAs)
+# 1. Fishery DF
 pred_df_fishery <- prepare_df(full_stack)
 
-# 2. Manta DF: REMOVES deep variables that cause shelf-masking
-# We exclude temp at depth so we don't lose the coast
+# 2. Manta DF
 manta_vars_to_exclude <- c("thetao_150m", "thetao_500m")
 manta_stack_names <- names(full_stack)[!names(full_stack) %in% manta_vars_to_exclude]
 manta_stack <- full_stack[[manta_stack_names]]
@@ -268,7 +258,7 @@ manta_stack <- full_stack[[manta_stack_names]]
 pred_df_manta <- prepare_df(manta_stack)
 
 message(glue("Fishery Prediction Points: {nrow(pred_df_fishery)}"))
-message(glue("Manta Ray Prediction Points: {nrow(pred_df_manta)} (Should be higher/include coast)"))
+message(glue("Manta Ray Prediction Points: {nrow(pred_df_manta)}"))
 
 if(nrow(pred_df_fishery) == 0 && nrow(pred_df_manta) == 0) stop("Terminating due to empty prediction frames.")
 
@@ -296,7 +286,6 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
   
-  # [CRITICAL FIX] Select the correct dataframe
   if (is_manta) {
     current_df <- pred_df_manta
   } else {
@@ -316,11 +305,9 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
-      # Manta Ray (GAM)
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
-      # Fishery Models (Ensemble)
       clean_df <- current_df %>% 
         dplyr::select(dplyr::all_of(fishery_predictors)) %>%
         as_tibble()
@@ -352,7 +339,6 @@ for (m_file in model_files) {
 # ----------------------------------------------------------------
 message("Exporting Environmental Layers for Viewer...")
 
-# Define mapping: Internal Name -> Output Filename Suffix
 env_map <- list(
   "thetao"      = "sst",
   "zos"         = "ssh",
@@ -364,14 +350,13 @@ env_map <- list(
   "depth"       = "bathymetry",
   "dfrom_shore" = "distance_to_shore",
   "bottom_t"    = "bottom_temp",
-  "front_z"     = "front_z",       # NEW: SST Fronts
-  "thetao_150m" = "thetao_150m",   # NEW: Temp at 150m
-  "thetao_500m" = "thetao_500m",   # NEW: Temp at 500m
-  "uo"          = "uo",            # NEW: Eastward Velocity
-  "vo"          = "vo"             # NEW: Northward Velocity
+  "front_z"     = "front_z",       
+  "thetao_150m" = "thetao_150m",   
+  "thetao_500m" = "thetao_500m",   
+  "uo"          = "uo",            
+  "vo"          = "vo"             
 )
 
-# Export Layers defined in mapping
 for (layer_name in names(env_map)) {
   if (layer_name %in% names(full_stack)) {
     r_out <- full_stack[[layer_name]]
@@ -387,7 +372,6 @@ for (layer_name in names(env_map)) {
   }
 }
 
-# Calculate and Export Current Speed (Mag of uo/vo)
 if (all(c("uo", "vo") %in% names(full_stack))) {
   r_curr <- sqrt(full_stack[["uo"]]^2 + full_stack[["vo"]]^2)
   names(r_curr) <- "current_speed"
