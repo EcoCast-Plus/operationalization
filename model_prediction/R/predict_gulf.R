@@ -92,9 +92,19 @@ message("Loading Dynamic Environmental Data...")
 
 load_raw <- function(var_name, nc_var) {
   f <- find_file(var_name, raw_dir)
-  # Handle files that might have different internal var names if needed
+  
+  # Load the raster
   r <- rast(f)[nc_var]
-  return(r[[1]]) 
+  r <- r[[1]] # Take first layer if multiple exist
+  
+  # [FIX] Handle 0-360 Longitude issue
+  # If the raster extent goes beyond 180 (e.g., up to 360), rotate it to -180/180
+  if (ext(r)$xmax > 180) {
+    message(glue(" -> Rotating '{var_name}' from 0-360 to -180/180 longitude..."))
+    r <- rotate(r)
+  }
+  
+  return(r) 
 }
 
 # 1. Load Standard Layers
