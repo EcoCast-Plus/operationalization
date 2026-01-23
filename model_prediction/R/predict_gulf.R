@@ -226,7 +226,6 @@ moon_vals <- oce::moonAngle(t = date_forecast, longitude = coords$x, latitude = 
 r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle"
 
 # Placeholders
-r_fronts      <- master_grid * 0; names(r_fronts)       <- "front_z"
 r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
 # Combine Final Stack
 full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_fronts, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
