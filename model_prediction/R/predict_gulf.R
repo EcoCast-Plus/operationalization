@@ -17,6 +17,7 @@ library(workflows)
 library(tidysdm)     # [CRITICAL] Required for Ensemble model dispatch
 library(grec)
 library(raster)
+library(ncdf4)
 
 # --- 2. Define Directories ---
 models_dir <- "model_prediction/gulf/results"
