@@ -358,7 +358,12 @@ env_map <- list(
   "mlotst"      = "mld",
   "depth"       = "bathymetry",
   "dfrom_shore" = "distance_to_shore",
-  "bottom_t"    = "bottom_temp"
+  "bottom_t"    = "bottom_temp",
+  "front_z"     = "front_z",       # NEW: SST Fronts
+  "thetao_150m" = "thetao_150m",   # NEW: Temp at 150m
+  "thetao_500m" = "thetao_500m",   # NEW: Temp at 500m
+  "uo"          = "uo",            # NEW: Eastward Velocity
+  "vo"          = "vo"             # NEW: Northward Velocity
 )
 
 # Export Layers defined in mapping
@@ -372,6 +377,8 @@ for (layer_name in names(env_map)) {
     
     writeRaster(r_out, save_path, overwrite = TRUE)
     message(glue("  -> Exported Env: {save_name}"))
+  } else {
+    message(glue("  -> WARNING: Layer '{layer_name}' not found in stack. Skipping."))
   }
 }
 
