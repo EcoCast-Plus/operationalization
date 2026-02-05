@@ -9,23 +9,20 @@
 body {
   margin: 0;
   padding: 0;
-  /* Prevent horizontal scroll caused by 100vw + scrollbars */
   overflow-x: hidden; 
 }
 
-/* This targets the main Quarto container to remove the top gap */
-#quarto-content.page-columns {
-  padding-top: 0 !important;
-}
-
-.page-columns .column-page, .page-columns .column-page-inset {
+/* Neutralize Quarto's default container padding/margins */
+#quarto-content, 
+#quarto-content.page-columns,
+main.content {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
 
 /* --- FULL WIDTH HERO BANNER FIX --- */
 .hero-wrapper {
-  /* Force edge-to-edge */
+  /* Break out of the container to hit the edges */
   width: 100vw;
   position: relative;
   left: 50%;
@@ -33,23 +30,22 @@ body {
   margin-left: -50vw;
   margin-right: -50vw;
   
-  /* Background color */
+  /* Pull the banner up to touch the light blue navbar */
+  /* If there is still a tiny gap, increase this to -10px or -20px */
+  margin-top: 0px; 
+  
   background-color: var(--noaa-blue);
-  
-  /* Removes the gap to the navbar */
-  margin-top: 0; 
-  
-  /* Controls vertical size of banner */
-  padding: 3rem 0; 
+  padding: 3rem 0;
+  box-sizing: border-box;
 }
 
 .hero-banner {
   max-width: 1000px;
   margin: 0 auto;
   text-align: center;
-  color: white !important;
   padding: 0 1rem;
 }
+
 /* Force text colors to white */
 .hero-banner h1, .hero-banner h3, .hero-banner p {
   color: white !important;
