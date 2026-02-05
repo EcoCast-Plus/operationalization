@@ -5,31 +5,42 @@
   --text-white: #ffffff;
 }
 
-/* Fix right-side whitespace issues globally */
+/* --- GLOBAL FIXES --- */
 body {
-  overflow-x: hidden; /* Critical: hides the horizontal scrollbar */
   margin: 0;
   padding: 0;
+  /* Prevent horizontal scroll caused by 100vw + scrollbars */
+  overflow-x: hidden; 
+}
+
+/* This targets the main Quarto container to remove the top gap */
+#quarto-content.page-columns {
+  padding-top: 0 !important;
+}
+
+.page-columns .column-page, .page-columns .column-page-inset {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
 /* --- FULL WIDTH HERO BANNER FIX --- */
 .hero-wrapper {
-  /* 1. FORCE FULL WIDTH (Edge-to-Edge) */
-  width: 100vw; 
+  /* Force edge-to-edge */
+  width: 100vw;
   position: relative;
   left: 50%;
   right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
   
-  /* This method is more stable than margins for edge-alignment */
-  transform: translateX(-50%); 
-  
+  /* Background color */
   background-color: var(--noaa-blue);
   
-  /* 2. ADJUST HEIGHT & POSITION */
-  margin-top: -50px; /* Pulls up to navbar */
+  /* Removes the gap to the navbar */
+  margin-top: 0; 
   
-  /* REDUCED PADDING: Makes the banner smaller top-to-bottom */
-  padding: 2.5rem 0; 
+  /* Controls vertical size of banner */
+  padding: 3rem 0; 
 }
 
 .hero-banner {
@@ -39,7 +50,6 @@ body {
   color: white !important;
   padding: 0 1rem;
 }
-
 /* Force text colors to white */
 .hero-banner h1, .hero-banner h3, .hero-banner p {
   color: white !important;
