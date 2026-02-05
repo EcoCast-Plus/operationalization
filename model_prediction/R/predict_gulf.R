@@ -357,8 +357,6 @@ env_map <- list(
   "eke"         = "eke",
   "tke"         = "tke",
   "mlotst"      = "mld",
-  "depth"       = "bathymetry",
-  "dfrom_shore" = "distance_to_shore",
   "bottom_t"    = "bottom_temp",
   "front_z"     = "front_z",       
   "thetao_150m" = "thetao_150m",   
