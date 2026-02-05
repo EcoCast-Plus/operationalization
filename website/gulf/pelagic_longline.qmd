@@ -1,5 +1,5 @@
 ---
-title: "GulfCast: Gulf of America Pelagic Longline Bycatch Reduction Tool"
+title: "GulfCast: Pelagic Longline Bycatch Reduction Tool"
 page-layout: full   # <--- CRITICAL: This fills the width now that sidebar is gone
 toc: false          # Keeps the right side clear
 ---
