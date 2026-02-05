@@ -30,7 +30,7 @@ website:
       # GULF OF AMERICA
       - text: "Gulf of America"
         menu:
-          - text: "Pelagic Longline Explorer"
+          - text: "GulfCast: Pelagic Longline Optimization"
             href: gulf/pelagic_longline.qmd
 
       # PLACEHOLDERS
