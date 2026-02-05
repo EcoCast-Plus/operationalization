@@ -5,7 +5,6 @@ toc: false
 sidebar: false
 css: styles.css
 ---
-
 ```{=html}
 <div class="hero-wrapper">
 <div class="hero-banner">
