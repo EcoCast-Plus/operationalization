@@ -165,3 +165,8 @@ header#title-block-header {
   background-color: var(--noaa-blue);
   color: white;
 }
+
+.navbar {
+  margin-bottom: 0 !important;
+  border-bottom: none !important;
+}
