@@ -123,6 +123,6 @@ r_out[cells] <- final_prob
 
 # Write Files
 writeRaster(r_out, file.path(OUTPUT_DIR, paste0("PRED_", date_str, "_leatherback.tif")), overwrite=TRUE)
-writeRaster(r_out > 0.71, file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif")), overwrite=TRUE)
+writeRaster(r_out > 0.03, file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif")), overwrite=TRUE)
 
 message(paste("Success! Predictions generated for", date_str))
