@@ -142,6 +142,6 @@ writeRaster(r_out, out_prob, overwrite=TRUE)
 # Save Binary Core Habitat Mask (>0.71)
 
 out_core <- file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif"))
-writeRaster(r_out > 0.05, out_core, overwrite=TRUE)
+writeRaster(r_out > 0.71, out_core, overwrite=TRUE)
 
 message(paste("Success! Generated Leatherback Forecast for:", date_str))
