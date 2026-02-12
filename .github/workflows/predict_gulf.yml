@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   predict-gulf:
+    # Only run if the download was successful OR if triggered manually
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     env:
@@ -30,10 +31,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev libnetcdf-dev libudunits2-dev libharfbuzz-dev libfribidi-dev
 
-    - name: Install R Dependencies
+    - name: Install Bioconductor & INLA Dependencies
+      # These specific libraries are required before INLA can load
+      run: |
+        Rscript -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
+        Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update = FALSE, ask = FALSE)"
+
+    - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
+        cache-version: 7 # Incremented to ensure a fresh, specific environment
         packages: |
           any::dplyr
           any::terra
@@ -44,27 +52,43 @@ jobs:
           any::googledrive
           any::stringr
           any::fmesher
-          any::BiocManager
+          any::xgboost@1.7.8.1
+          any::stacks
+          any::tidysdm
+        extra-repos: |
+          INLA=https://inla.r-inla-download.org/R/stable
 
-    - name: Install INLA & inlabru
+    - name: Force Specific INLA and inlabru Versions
+      # Ensures the exact environment needed for the Leatherback INLA model
       run: |
-        Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update=FALSE, ask=FALSE)"
-        Rscript -e "install.packages('INLA', repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'), dep=TRUE)"
-        Rscript -e "remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
-        Rscript -e "remotes::install_version('xgboost', version='1.7.8.1', repos='https://cloud.r-project.org')"
+        Rscript -e "if (!require('inlabru') || packageVersion('inlabru') != '2.12.0') remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
+        Rscript -e "if (!require('INLA')) install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable', dep=TRUE)"
 
-    - name: Run Leatherback Prediction
+    - name: Run General Species Predictions
+      # continue-on-error ensures that if one species fails, the others still run and save
+      continue-on-error: true 
+      run: Rscript model_prediction/R/predict_gulf.R
+
+    - name: Run Leatherback Turtle Prediction
+      continue-on-error: true 
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
     - name: Commit and Push
+      # This step runs even if previous steps had warnings/errors
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
+        
+        # Pull latest remote changes (from concurrent workflows) to avoid push conflicts
+        git pull origin main --rebase
+        
+        # Add all prediction outputs (TIFs and PNG plots)
         git add model_prediction/gulf/predictions/*.tif
         git add model_prediction/gulf/predictions/*.png
+        
         if git diff --staged --quiet; then
-          echo "No changes."
+          echo "No new predictions to commit."
         else
-          git commit -m "Update Gulf Predictions [$(date +'%Y-%m-%d')]"
+          git commit -m "Update Gulf & Leatherback Predictions [$(date +'%Y-%m-%d')]"
           git push origin main
         fi
