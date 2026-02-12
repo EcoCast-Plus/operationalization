@@ -1,12 +1,9 @@
 name: Predict Gulf of Mexico
 
 on:
-  # [NEW TRIGGER] Run automatically when "Download CMEMS data" completes
   workflow_run:
     workflows: ["Download CMEMS data"]
-    types:
-      - completed
-  # Keep manual trigger for testing
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -14,11 +11,11 @@ permissions:
 
 jobs:
   predict-gulf:
-    # [SAFETY CHECK] Only run if the download workflow actually succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
@@ -26,67 +23,48 @@ jobs:
     - name: Install R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: '4.3.3' # Slightly older R version improves binary compatibility for 1.7.x
+        r-version: '4.3.3'
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev libnetcdf-dev libudunits2-dev
+        sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev libnetcdf-dev libudunits2-dev libharfbuzz-dev libfribidi-dev
 
-    # 1. Install standard dependencies (except xgboost/stacks which we handle manually)
     - name: Install R Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 4
         packages: |
           any::dplyr
-          any::glue
-          any::lubridate
           any::terra
           any::sf
-          any::bundle
-          any::ranger
-          any::mgcv
-          any::oce
-          any::tidymodels
-          any::workflows
-          any::parsnip
+          any::ggplot2
+          any::tidyterra
           any::remotes
-          any::grec
-          any::ncdf4
+          any::googledrive
+          any::stringr
+          any::fmesher
+          any::BiocManager
 
-    # 2. [CRITICAL FIX] Force-install the exact XGBoost version from your local machine
-    - name: Force Compatible Model Packages
+    - name: Install INLA & inlabru
       run: |
-        # Force install XGBoost 1.7.8.1 (Legacy Engine)
-        Rscript -e "remotes::install_version('xgboost', version = '1.7.8.1', repos = 'https://cloud.r-project.org')"
-        
-        # Install stacks and tidysdm AFTER xgboost so they link to the correct version
-        Rscript -e "install.packages(c('stacks', 'tidysdm'))"
-        
-        # Print versions to debug log (Verifies the fix)
-        Rscript -e "packageVersion('xgboost'); packageVersion('stacks')"
+        Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update=FALSE, ask=FALSE)"
+        Rscript -e "install.packages('INLA', repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'), dep=TRUE)"
+        Rscript -e "remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
+        Rscript -e "remotes::install_version('xgboost', version='1.7.8.1', repos='https://cloud.r-project.org')"
 
-    - name: Run Prediction Script
-      run: Rscript model_prediction/R/predict_gulf.R
-      
-    - name: Run Leatherback Turtle Prediction Script
+    - name: Run Leatherback Prediction
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
-    - name: Commit and Push Changes
+    - name: Commit and Push
       run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-        
-        # Add the specific folder where predictions are saved
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
         git add model_prediction/gulf/predictions/*.tif
-        
-        # Check if there are changes before committing
+        git add model_prediction/gulf/predictions/*.png
         if git diff --staged --quiet; then
-          echo "No changes to commit."
+          echo "No changes."
         else
-          git commit -m "Update Gulf Predictions"
-          git pull origin main --rebase
+          git commit -m "Update Gulf Predictions [$(date +'%Y-%m-%d')]"
           git push origin main
         fi
