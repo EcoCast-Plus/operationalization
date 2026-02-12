@@ -33,6 +33,14 @@ library(INLA)
 library(inlabru)
 library(fmesher)
 
+assignInNamespace("bru_info_upgrade", function(object, ...) {
+  message("GHA Patch: Skipping bru_info_upgrade to prevent strsplit crash.")
+  return(object)
+}, ns = "inlabru")
+
+# Double-check the version override is also active
+assignInNamespace("inla.version", function(...) "25.10.19", ns = "INLA")                  
+
 # --- SETTINGS ---
 MODEL_RDS   <- file.path(local_dir, "inla.st.etag.2to1.rds")
 SCALING_RDS <- file.path(local_dir, "scaling_params_2026.02.05.rds")
