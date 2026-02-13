@@ -88,15 +88,18 @@ jobs:
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
-        git pull origin main --rebase
         
-        # Use 'git add' with a check to avoid "pathspec did not match" errors
-        # This allows the workflow to push successfully even if only some files were created
-        git add model_prediction/gulf/predictions/*.tif || echo "No TIFs found"
-        git add model_prediction/gulf/predictions/*.png || echo "No PNGs found"
+        # 1. Stage the new predictions first
+        git add model_prediction/gulf/predictions/*.tif || echo "No TIFs"
+        git add model_prediction/gulf/predictions/*.png || echo "No PNGs"
         
+        # 2. Pull with rebase and autostash
+        # This handles the "unstaged changes" error by temporarily hiding your new files
+        git pull origin main --rebase --autostash
+        
+        # 3. Finalize and push
         if git diff --staged --quiet; then
-          echo "No new predictions to commit."
+          echo "No changes to commit."
         else
           git commit -m "Update Gulf & Leatherback Predictions [$(date +'%Y-%m-%d')]"
           git push origin main
