@@ -41,7 +41,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 7 # Incremented to ensure a fresh, specific environment
+        cache-version: 8 # Bumped to install new dependencies
         packages: |
           any::dplyr
           any::terra
@@ -52,20 +52,21 @@ jobs:
           any::googledrive
           any::stringr
           any::fmesher
+          any::BiocManager
           any::xgboost@1.7.8.1
           any::stacks
           any::tidysdm
+          any::bundle
+          any::sn
         extra-repos: |
           INLA=https://inla.r-inla-download.org/R/stable
 
     - name: Force Specific INLA and inlabru Versions
-      # Ensures the exact environment needed for the Leatherback INLA model
       run: |
         Rscript -e "if (!require('inlabru') || packageVersion('inlabru') != '2.12.0') remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
         Rscript -e "if (!require('INLA')) install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable', dep=TRUE)"
 
     - name: Run General Species Predictions
-      # continue-on-error ensures that if one species fails, the others still run and save
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
 
@@ -74,17 +75,15 @@ jobs:
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
     - name: Commit and Push
-      # This step runs even if previous steps had warnings/errors
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
-        
-        # Pull latest remote changes (from concurrent workflows) to avoid push conflicts
         git pull origin main --rebase
         
-        # Add all prediction outputs (TIFs and PNG plots)
-        git add model_prediction/gulf/predictions/*.tif
-        git add model_prediction/gulf/predictions/*.png
+        # Use 'git add' with a check to avoid "pathspec did not match" errors
+        # This allows the workflow to push successfully even if only some files were created
+        git add model_prediction/gulf/predictions/*.tif || echo "No TIFs found"
+        git add model_prediction/gulf/predictions/*.png || echo "No PNGs found"
         
         if git diff --staged --quiet; then
           echo "No new predictions to commit."
