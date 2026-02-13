@@ -58,6 +58,7 @@ jobs:
           any::tidysdm
           any::bundle
           any::sn
+          any::ranger
         extra-repos: |
           INLA=https://inla.r-inla-download.org/R/stable
 
