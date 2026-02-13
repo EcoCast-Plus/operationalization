@@ -59,6 +59,15 @@ jobs:
           any::bundle
           any::sn
           any::ranger
+          any::mgcv
+          any::oce
+          any::tidymodels
+          any::workflows
+          any::parsnip
+          any::glue
+          any::lubridate
+          any::grec
+          any::ncdf4
         extra-repos: |
           INLA=https://inla.r-inla-download.org/R/stable
 
