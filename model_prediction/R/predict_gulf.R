@@ -290,24 +290,36 @@ message(glue("Found {length(model_files)} models. Starting predictions..."))
 
 for (m_file in model_files) {
   model_name <- basename(m_file)
-  message(glue("Processing: {model_name}"))
   
+  # --- Model Identification ---
   is_swordfish_target <- grepl("Swordfish_Target", model_name)
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_manta            <- grepl("MANTA_RAY", model_name)
+  is_depredation      <- grepl("Depredation", model_name)
   
+  # Dynamic logging based on model type
+  model_type_log <- case_when(
+    is_manta ~ "Manta Ray",
+    is_depredation ~ "Shark Depredation",
+    TRUE ~ "Fishery Species"
+  )
+  message(glue("Processing [{model_type_log}]: {model_name}"))
+  
+  # --- Select Correct Dataframe ---
   if (is_manta) {
     current_df <- pred_df_manta
   } else {
     current_df <- pred_df_fishery
   }
   
+  # --- Inject Objective Constants ---
   if (is_swordfish_target) {
     for (var in names(inputs_swordfish)) current_df[[var]] <- inputs_swordfish[[var]]
   } else if (is_yellowfin_target) {
     for (var in names(inputs_yellowfin)) current_df[[var]] <- inputs_yellowfin[[var]]
   }
   
+  # --- Load and Predict ---
   tryCatch({
     model_bundled <- readRDS(m_file)
     model_obj     <- bundle::unbundle(model_bundled)
@@ -315,9 +327,11 @@ for (m_file in model_files) {
     preds <- NULL
     
     if (is_manta) {
+      # Manta uses standard mgcv/GAM prediction
       preds <- predict(model_obj, newdata = current_df, type = "response")
       preds <- as.numeric(preds)
     } else {
+      # Fishery & Depredation use tidymodels stacked ensembles
       clean_df <- current_df %>% 
         dplyr::select(dplyr::all_of(fishery_predictors)) %>%
         as_tibble()
@@ -326,6 +340,7 @@ for (m_file in model_files) {
       preds <- as.numeric(preds_prob$.pred_presence)
     }
     
+    # --- Rasterize and Save ---
     if (!is.null(preds)) {
       r_out <- master_grid
       values(r_out) <- NA
