@@ -41,7 +41,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 8 # Bumped to install new dependencies
+        cache-version: 9 # Bumped to 9 to force installation of googleCloudStorageR
         packages: |
           any::dplyr
           any::terra
@@ -49,7 +49,7 @@ jobs:
           any::ggplot2
           any::tidyterra
           any::remotes
-          any::googledrive
+          any::googleCloudStorageR
           any::stringr
           any::fmesher
           any::BiocManager
@@ -79,6 +79,12 @@ jobs:
     - name: Run General Species Predictions
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
+
+    - name: Set up Google Cloud Auth
+      # This pulls your GitHub Secret and temporarily writes it to the runner so R can use it
+      run: |
+        echo '${{ secrets.GCS_SA_KEY }}' > gcs_auth.json
+        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
 
     - name: Run Leatherback Turtle Prediction
       continue-on-error: true 
