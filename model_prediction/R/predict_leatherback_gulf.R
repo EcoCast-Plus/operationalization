@@ -14,22 +14,33 @@ assignInNamespace("bru_info_upgrade", function(object, ...) return(object), ns =
 options(inlabru_upgrade_check = FALSE)
 sf::sf_use_s2(FALSE) 
 
-# --- 2. GOOGLE DRIVE DOWNLOAD (Guest Mode) ---
-library(googledrive)
+# --- 2. GOOGLE CLOUD & GITHUB DOWNLOADS ---
+library(googleCloudStorageR) # For authenticated GCS downloads
+
 local_dir <- "model_prediction/gulf/results"
 if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
 
-drive_deauth()
-folder_id <- "1a7yxmaZUm7RLolJ-svD5QYFXQZxJW5If"
-targets <- c("inla.st.etag.2to1.rds", "scaling_params_2026.02.05.rds")
+# A. Download INLA Model from Google Cloud Storage
+message("Fetching INLA model from GCS...")
 
-message("Fetching model files...")
-for (target in targets) {
-  drive_download(
-    file = as_id(drive_ls(as_id(folder_id), pattern = target)$id),
-    path = file.path(local_dir, target), overwrite = TRUE
-  )
-}
+# Authenticate using the environment variable created by GitHub Actions
+gcs_auth(json_file = Sys.getenv("GCS_AUTH_FILE"))
+
+# Download the model
+gcs_get_object("Models/inla.st.etag.2to1.rds",
+               bucket = "mitchellrider-speciesdistmodel-seaturtles_gulfatlantic",
+               saveToDisk = file.path(local_dir, "inla.st.etag.2to1.rds"),
+               overwrite = TRUE)
+
+
+# B. Download Scaling Params from GitHub
+message("Fetching scaling params from GitHub...")
+github_raw_url <- "https://raw.githubusercontent.com/EcoCast-Plus/operationalization/main/model_prediction/gulf/results/scaling_params_2026.02.05.rds"
+
+download.file(github_raw_url, 
+              destfile = file.path(local_dir, "scaling_params_2026.02.05.rds"), 
+              mode = "wb", 
+              quiet = TRUE)
 
 # --- 3. LIBRARIES & SETTINGS ---
 library(terra)
@@ -106,4 +117,6 @@ ggsave(file.path(OUTPUT_DIR, paste0("PLOT_", date_str, "_leatherback.png")), p, 
 
 # --- 7. CLEANUP ---
 file.remove(MODEL_RDS, SCALING_RDS)
+# Optional: Remove the auth file for security
+if (file.exists(Sys.getenv("GCS_AUTH_FILE"))) file.remove(Sys.getenv("GCS_AUTH_FILE"))
 message("Process complete.")
