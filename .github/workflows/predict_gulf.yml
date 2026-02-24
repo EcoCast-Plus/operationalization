@@ -41,7 +41,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 10 # Bumped to 10 to force a clean install of these new versions
+        cache-version: 11 # Bumped to 11 to ensure it rebuilds the cache with themis
         packages: |
           any::dplyr
           any::terra
@@ -55,8 +55,9 @@ jobs:
           any::BiocManager
           any::xgboost@1.7.7.1
           any::stacks@1.0.5
-          any::tidysdm
+          any::tidysdm@1.0.0
           any::bundle@0.1.2
+          any::themis@1.0.3
           any::sn
           any::ranger
           any::mgcv
