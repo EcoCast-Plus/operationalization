@@ -41,7 +41,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 9 # Bumped to 9 to force installation of googleCloudStorageR
+        cache-version: 10 # Bumped to 10 to force a clean install of these new versions
         packages: |
           any::dplyr
           any::terra
@@ -53,15 +53,15 @@ jobs:
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost@1.7.8.1
-          any::stacks
+          any::xgboost@1.7.7.1
+          any::stacks@1.0.5
           any::tidysdm
-          any::bundle
+          any::bundle@0.1.2
           any::sn
           any::ranger
           any::mgcv
           any::oce
-          any::tidymodels
+          any::tidymodels@1.2.0
           any::workflows
           any::parsnip
           any::glue
@@ -70,7 +70,7 @@ jobs:
           any::ncdf4
         extra-repos: |
           INLA=https://inla.r-inla-download.org/R/stable
-
+          
     - name: Force Specific INLA and inlabru Versions
       run: |
         Rscript -e "if (!require('inlabru') || packageVersion('inlabru') != '2.12.0') remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
