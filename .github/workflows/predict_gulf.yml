@@ -42,6 +42,7 @@ jobs:
       with:
         cache: always
         cache-version: 11 # Bumped to 11 to ensure it rebuilds the cache with themis
+        install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
           any::dplyr
           any::terra
