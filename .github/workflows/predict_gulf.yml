@@ -37,11 +37,16 @@ jobs:
         Rscript -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
         Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update = FALSE, ask = FALSE)"
 
+    - name: Configure R Repositories
+      # This globally registers the INLA server so pak knows where to find it
+      run: |
+        echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
+
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 12 # Bumped to 12 to ensure it rebuilds the cache with themis
+        cache-version: 13 # Bumped to 13 to clear the failed resolution cache
         install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
           any::dplyr
@@ -72,8 +77,6 @@ jobs:
           any::ncdf4
           any::inlabru@2.12.0
           any::INLA
-        extra-repos: |
-          INLA=https://inla.r-inla-download.org/R/stable
 
     - name: Run General Species Predictions
       continue-on-error: true 
