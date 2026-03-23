@@ -41,7 +41,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 11 # Bumped to 11 to ensure it rebuilds the cache with themis
+        cache-version: 12 # Bumped to 12 to ensure it rebuilds the cache with themis
         install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
           any::dplyr
@@ -70,13 +70,10 @@ jobs:
           any::lubridate
           any::grec
           any::ncdf4
+          any::inlabru@2.12.0
+          any::INLA
         extra-repos: |
           INLA=https://inla.r-inla-download.org/R/stable
-          
-    - name: Force Specific INLA and inlabru Versions
-      run: |
-        Rscript -e "if (!require('inlabru') || packageVersion('inlabru') != '2.12.0') remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
-        Rscript -e "if (!require('INLA')) install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable', dep=TRUE)"
 
     - name: Run General Species Predictions
       continue-on-error: true 
