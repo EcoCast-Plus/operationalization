@@ -37,11 +37,17 @@ jobs:
         Rscript -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
         Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update = FALSE, ask = FALSE)"
 
+    - name: Configure R Repositories
+      # This globally registers the INLA server so pak knows where to find it
+      run: |
+        echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
+
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 8 # Bumped to install new dependencies
+        cache-version: 13 # Bumped to 13 to clear the failed resolution cache
+        install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
           any::dplyr
           any::terra
@@ -49,36 +55,38 @@ jobs:
           any::ggplot2
           any::tidyterra
           any::remotes
-          any::googledrive
+          any::googleCloudStorageR
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost@1.7.8.1
-          any::stacks
-          any::tidysdm
-          any::bundle
+          any::xgboost@1.7.7.1
+          any::stacks@1.0.5
+          any::tidysdm@1.0.0
+          any::bundle@0.1.2
+          any::themis@1.0.3
           any::sn
           any::ranger
           any::mgcv
           any::oce
-          any::tidymodels
+          any::tidymodels@1.2.0
           any::workflows
           any::parsnip
           any::glue
           any::lubridate
           any::grec
           any::ncdf4
-        extra-repos: |
-          INLA=https://inla.r-inla-download.org/R/stable
-
-    - name: Force Specific INLA and inlabru Versions
-      run: |
-        Rscript -e "if (!require('inlabru') || packageVersion('inlabru') != '2.12.0') remotes::install_version('inlabru', version='2.12.0', repos='https://cloud.r-project.org')"
-        Rscript -e "if (!require('INLA')) install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable', dep=TRUE)"
+          any::inlabru@2.12.0
+          any::INLA
 
     - name: Run General Species Predictions
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
+
+    - name: Set up Google Cloud Auth
+      # This pulls your GitHub Secret and temporarily writes it to the runner so R can use it
+      run: |
+        echo '${{ secrets.GCS_SA_KEY }}' > gcs_auth.json
+        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
 
     - name: Run Leatherback Turtle Prediction
       continue-on-error: true 
