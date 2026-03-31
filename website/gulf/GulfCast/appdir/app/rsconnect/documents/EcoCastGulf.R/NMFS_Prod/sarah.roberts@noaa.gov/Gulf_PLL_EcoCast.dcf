@@ -1,0 +1,10 @@
+name: Gulf_PLL_EcoCast
+title:
+username: sarah.roberts@noaa.gov
+account: sarah.roberts@noaa.gov
+server: NMFS_Prod
+hostUrl: https://connect.fisheries.noaa.gov/__api__
+appId: 534
+bundleId: 4299
+url: https://connect.fisheries.noaa.gov/content/45441aa1-00a1-4970-90a5-50fcabea405b/
+version: 1

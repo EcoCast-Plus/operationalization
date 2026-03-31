@@ -1,0 +1,10 @@
+name: GOM_PLL_EcoCast
+title:
+username: sarah.roberts@noaa.gov
+account: sarah.roberts@noaa.gov
+server: NMFS_Prod
+hostUrl: https://connect.fisheries.noaa.gov/__api__
+appId: 521
+bundleId: 3549
+url: https://connect.fisheries.noaa.gov/content/10cc678f-e63a-497f-b086-7540c520d6c1/
+version: 1
