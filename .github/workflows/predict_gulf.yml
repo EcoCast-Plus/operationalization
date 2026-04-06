@@ -81,6 +81,10 @@ jobs:
     - name: Run General Species Predictions
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
+      
+    - name: Run Manta Ray Prediction
+      continue-on-error: true 
+      run: Rscript model_prediction/R/predict_manta.R
 
     - name: Set up Google Cloud Auth
       # This pulls your GitHub Secret and temporarily writes it to the runner so R can use it

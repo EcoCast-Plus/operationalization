@@ -1,4 +1,4 @@
-# Predict Gulf of Mexico - Coastal Manta Fix + Env Export
+# Predict Gulf of Mexico - Fishery Targets & Shark Depredation
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -9,12 +9,11 @@ library(lubridate)
 library(bundle)
 library(xgboost)
 library(ranger)
-library(mgcv)        # [CRITICAL] Required for Manta Ray (GAM) prediction
 library(oce)
 library(stacks)
 library(tidymodels)
 library(workflows)
-library(tidysdm)     # [CRITICAL] Required for Ensemble model dispatch
+library(tidysdm)     # Required for Ensemble model dispatch
 library(grec)
 library(raster)
 library(ncdf4)
@@ -34,7 +33,7 @@ date_obs      <- Sys.Date() - 1
 message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 
 # ----------------------------------------------------------------
-# HELPER: Smart File Finder (Updated logic)
+# HELPER: Smart File Finder 
 # ----------------------------------------------------------------
 find_file <- function(var_name, search_dir) {
   # 1. Determine the ideal target date
@@ -42,7 +41,6 @@ find_file <- function(var_name, search_dir) {
   
   # Forecast vars use date_forecast (Tomorrow)
   # Observation vars use date_obs (Yesterday)
-  # Note: Added "ugosa" and "vgosa" explicitly here if they are observational NRT products
   obs_vars <- c("l.chl", "sla", "sst", "analysed_sst", "ugosa", "vgosa")
   if (var_name %in% obs_vars) target_date <- date_obs
   
@@ -87,7 +85,7 @@ validate_layer <- function(r, name, master_grid) {
   return(r)
 }
 
-# --- 4. LOAD & PROCESS ENVIRONMENTAL DATA (CORRECTED) ---
+# --- 4. LOAD & PROCESS ENVIRONMENTAL DATA ---
 message("Loading Dynamic Environmental Data...")
 
 load_raw <- function(var_name, nc_var) {
@@ -97,8 +95,7 @@ load_raw <- function(var_name, nc_var) {
   r <- rast(f)[nc_var]
   r <- r[[1]] # Take first layer if multiple exist
   
-  # [FIX] Handle 0-360 Longitude issue
-  # If the raster extent goes beyond 180 (e.g., up to 360), rotate it to -180/180
+  # Handle 0-360 Longitude issue
   if (ext(r)$xmax > 180) {
     message(glue(" -> Rotating '{var_name}' from 0-360 to -180/180 longitude..."))
     r <- rotate(r)
@@ -116,9 +113,7 @@ r_chl        <- load_raw("l.chl", "CHL")
 r_uo         <- load_raw("uo", "uo")     # Total Eastward Current
 r_vo         <- load_raw("vo", "vo")     # Total Northward Current
 
-# 2. [UPDATED] Load Geostrophic Anomalies (Required for EKE)
-# Now looking for files with "ugosa" and "vgosa" in the filename
-# AND extracting the variable "ugosa" and "vgosa" respectively.
+# 2. Load Geostrophic Anomalies (Required for EKE)
 r_ugosa      <- load_raw("ugosa", "ugosa") 
 r_vgosa      <- load_raw("vgosa", "vgosa")
 
@@ -130,17 +125,16 @@ r_mld        <- load_raw("mld", "mlotst")
 r_so         <- load_raw("so", "so")
 
 # ---------------------------------------------------------
-# 4. Calculate Derived Variables Correctly
+# 4. Calculate Derived Variables
 # ---------------------------------------------------------
 message("Calculating Derived Variables (EKE, TKE, Fronts)...")
 
-# A. TKE (Total Kinetic Energy) -> Uses Total Currents (uo/vo)
+# A. TKE (Total Kinetic Energy) 
 r_tke <- 0.5 * (r_uo^2 + r_vo^2)
 
-# B. EKE (Eddy Kinetic Energy) -> Uses Geostrophic Anomalies (ugosa/vgosa)
-# Check for NAs in ugosa/vgosa specifically to debug "all 0" issue
+# B. EKE (Eddy Kinetic Energy) 
 if(all(is.na(values(r_ugosa))) || all(is.na(values(r_vgosa)))) {
-    message("WARNING: ugosa or vgosa layers are empty. EKE will be 0.")
+  message("WARNING: ugosa or vgosa layers are empty. EKE will be 0.")
 }
 r_eke <- 0.5 * (r_ugosa^2 + r_vgosa^2)
 
@@ -198,8 +192,6 @@ if(file.exists(file.path(static_dir, "bathymetry.tif"))) {
   r_shore <- master_grid * 0; names(r_shore) <- "dfrom_shore"
 }
 
-r_striparea <- master_grid * 0 + 1876712; names(r_striparea) <- "striparea"
-
 # Climatology
 message("Calculating Anomalies...")
 target_doy <- yday(date_forecast)
@@ -230,47 +222,33 @@ r_moon <- master_grid; values(r_moon) <- moon_vals; names(r_moon) <- "moon_angle
 r_hooks_rule  <- master_grid * 0 + 1L; names(r_hooks_rule) <- "hooks_rule" 
 
 # Combine Final Stack
-full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule, r_striparea)
+full_stack <- c(env_stack_dynamic, r_depth, r_shore, r_month, r_doy, r_moon, r_sst_anomaly, r_ssh_anomaly, r_hooks_rule)
 
 # ----------------------------------------------------------------
-# 5b. Create Two Prediction Dataframes
+# 5b. Create Prediction Dataframe
 # ----------------------------------------------------------------
-message("Preparing Prediction Dataframes...")
+message("Preparing Prediction Dataframe...")
 
-prepare_df <- function(stack_in) {
-  df <- as.data.frame(stack_in, xy = TRUE, na.rm = TRUE)
+pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+
+if (nrow(pred_df) > 0) {
+  # Type Casting
+  if("hooks_rule" %in% names(pred_df)) pred_df$hooks_rule <- as.integer(pred_df$hooks_rule)
+  if("doy" %in% names(pred_df))        pred_df$doy        <- as.integer(pred_df$doy)
+  if("month" %in% names(pred_df))      pred_df$month      <- as.integer(pred_df$month)
   
-  if (nrow(df) > 0) {
-    # Type Casting
-    if("hooks_rule" %in% names(df)) df$hooks_rule <- as.integer(df$hooks_rule)
-    if("doy" %in% names(df))        df$doy        <- as.integer(df$doy)
-    if("month" %in% names(df))      df$month      <- as.integer(df$month)
-    
-    # Aliases
-    if("chl" %in% names(df))         df$ChlA       <- df$chl
-    if("thetao" %in% names(df))      df$SST        <- df$thetao
-    if("zos" %in% names(df))         df$SSH        <- df$zos
-    if("front_z" %in% names(df))     df$Front_Z    <- df$front_z
-    if("depth" %in% names(df))       df$Depth      <- df$depth
-    if("dfrom_shore" %in% names(df)) df$DfromShore <- df$dfrom_shore
-  }
-  return(df)
+  # Aliases
+  if("chl" %in% names(pred_df))          pred_df$ChlA       <- pred_df$chl
+  if("thetao" %in% names(pred_df))       pred_df$SST        <- pred_df$thetao
+  if("zos" %in% names(pred_df))          pred_df$SSH        <- pred_df$zos
+  if("front_z" %in% names(pred_df))      pred_df$Front_Z    <- pred_df$front_z
+  if("depth" %in% names(pred_df))        pred_df$Depth      <- pred_df$depth
+  if("dfrom_shore" %in% names(pred_df))  pred_df$DfromShore <- pred_df$dfrom_shore
 }
 
-# 1. Fishery DF
-pred_df_fishery <- prepare_df(full_stack)
+message(glue("Prediction Points: {nrow(pred_df)}"))
 
-# 2. Manta DF
-manta_vars_to_exclude <- c("thetao_150m", "thetao_500m")
-manta_stack_names <- names(full_stack)[!names(full_stack) %in% manta_vars_to_exclude]
-manta_stack <- full_stack[[manta_stack_names]]
-
-pred_df_manta <- prepare_df(manta_stack)
-
-message(glue("Fishery Prediction Points: {nrow(pred_df_fishery)}"))
-message(glue("Manta Ray Prediction Points: {nrow(pred_df_manta)}"))
-
-if(nrow(pred_df_fishery) == 0 && nrow(pred_df_manta) == 0) stop("Terminating due to empty prediction frames.")
+if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
 
 # ----------------------------------------------------------------
 # 6. PREDICTION LOOP
@@ -291,26 +269,20 @@ message(glue("Found {length(model_files)} models. Starting predictions..."))
 for (m_file in model_files) {
   model_name <- basename(m_file)
   
-  # --- Model Identification ---
+  # --- Model Identification & Guard ---
+  if (grepl("MANTA", model_name, ignore.case = TRUE)) {
+    message(glue("Skipping {model_name} (Handled by standalone Manta script)"))
+    next
+  }
+  
   is_swordfish_target <- grepl("Swordfish_Target", model_name)
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
-  is_manta            <- grepl("MANTA_RAY", model_name)
   is_depredation      <- grepl("Depredation", model_name)
   
-  # Dynamic logging based on model type
-  model_type_log <- case_when(
-    is_manta ~ "Manta Ray",
-    is_depredation ~ "Shark Depredation",
-    TRUE ~ "Fishery Species"
-  )
+  model_type_log <- if(is_depredation) "Shark Depredation" else "Fishery Species"
   message(glue("Processing [{model_type_log}]: {model_name}"))
   
-  # --- Select Correct Dataframe ---
-  if (is_manta) {
-    current_df <- pred_df_manta
-  } else {
-    current_df <- pred_df_fishery
-  }
+  current_df <- pred_df
   
   # --- Inject Objective Constants ---
   if (is_swordfish_target) {
@@ -324,21 +296,13 @@ for (m_file in model_files) {
     model_bundled <- readRDS(m_file)
     model_obj     <- bundle::unbundle(model_bundled)
     
-    preds <- NULL
+    # Fishery & Depredation use tidymodels stacked ensembles
+    clean_df <- current_df %>% 
+      dplyr::select(dplyr::all_of(fishery_predictors)) %>%
+      as_tibble()
     
-    if (is_manta) {
-      # Manta uses standard mgcv/GAM prediction
-      preds <- predict(model_obj, newdata = current_df, type = "response")
-      preds <- as.numeric(preds)
-    } else {
-      # Fishery & Depredation use tidymodels stacked ensembles
-      clean_df <- current_df %>% 
-        dplyr::select(dplyr::all_of(fishery_predictors)) %>%
-        as_tibble()
-      
-      preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
-      preds <- as.numeric(preds_prob$.pred_presence)
-    }
+    preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
+    preds <- as.numeric(preds_prob$.pred_presence)
     
     # --- Rasterize and Save ---
     if (!is.null(preds)) {
