@@ -31,8 +31,8 @@ message(glue("Using Copernicus Tool at: {tool_path}"))
 # ----------------------------------------------------------------
 # REGIONAL BOUNDING BOXES
 # ----------------------------------------------------------------
-# 1. Gulf of Mexico
-bbox_gulf <- "--minimum-longitude -100 --maximum-longitude -81 --minimum-latitude 18 --maximum-latitude 33"
+# 1. Gulf of Mexico and South Atlantic 
+bbox_gulf <- "--minimum-longitude -100 --maximum-longitude -70 --minimum-latitude 18 --maximum-latitude 37"
 
 # 2. Top Predator / West Coast (Default)
 bbox_toppred <- "--minimum-longitude -160 --maximum-longitude -110 --minimum-latitude 10 --maximum-latitude 60"
