@@ -351,6 +351,11 @@ for (layer_name in names(env_map)) {
     r_out <- full_stack[[layer_name]]
     out_suffix <- env_map[[layer_name]]
     
+    # --- CLIP TO GULF BATHYMETRY ---
+    if (layer_name != "depth") {
+      r_out <- terra::mask(r_out, full_stack[["depth"]])
+    }
+    
     save_name <- glue("PRED_{date_forecast}_{out_suffix}.tif")
     save_path <- file.path(preds_dir, save_name)
     
@@ -364,6 +369,9 @@ for (layer_name in names(env_map)) {
 if (all(c("uo", "vo") %in% names(full_stack))) {
   r_curr <- sqrt(full_stack[["uo"]]^2 + full_stack[["vo"]]^2)
   names(r_curr) <- "current_speed"
+  
+  # --- CLIP TO GULF BATHYMETRY ---
+  r_curr <- terra::mask(r_curr, full_stack[["depth"]])
   
   save_name <- glue("PRED_{date_forecast}_current_speed.tif")
   save_path <- file.path(preds_dir, save_name)
