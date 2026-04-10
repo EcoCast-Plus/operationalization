@@ -8,9 +8,10 @@ library(dplyr)
 library(glue)
 library(lubridate)
 library(bundle)
-library(mgcv)        # Required for Manta Ray (GAM) prediction
-library(grec)        # Required for SST Fronts
-library(raster)      # Required for grec compatibility
+library(mgcv)          # Required for Manta Ray (GAM) prediction
+library(grec)          # Required for SST Fronts
+library(raster)        # Required for grec compatibility
+library(rnaturalearth) # Required for high-res coastline clipping
 
 # --- 2. Define Directories ---
 # Update these paths to match your new unified repo structure
@@ -84,6 +85,7 @@ names(r_slope) <- "Slope_deg"
 r_striparea <- master_grid * 0 + 1876712
 names(r_striparea) <- "striparea"
 
+
 # --- B. Load Dynamic Data & Process Gaps ---
 message("Loading and Processing Dynamic Environmental Data...")
 
@@ -142,6 +144,7 @@ r_chl_filled <- terra::focal(r_chl_cropped, w = 3, fun = mean, na.rm = TRUE, na.
 r_chl <- terra::mask(r_chl_filled, master_grid)
 names(r_chl) <- "ChlA"
 
+
 # --- C. Stack & Format Dataframe ---
 message("Formatting Prediction Stack...")
 
@@ -160,6 +163,7 @@ pred_df <- as.data.frame(manta_stack, xy = TRUE, na.rm = TRUE)
 if(nrow(pred_df) == 0) {
   stop("CRITICAL ERROR: Empty prediction frame. Check if your bathymetry mask aligns with CMEMS data.")
 }
+
 
 # --- D. Predict & Export ---
 if (!file.exists(model_path)) {
@@ -181,6 +185,25 @@ tryCatch({
   values(r_out) <- NA
   r_out[cellFromXY(r_out, pred_df[, c("x", "y")])] <- preds
   names(r_out) <- "MANTA_RAY_PRED"
+  
+  # --- Coastline Clipping Step ---
+  message(" -> Clipping output to high-resolution US coastline...")
+  
+  # Load US land polygons (optimized for your specific spatial footprint)
+  tryCatch({
+    # By default, this will grab the high-res data if rnaturalearthhires is installed
+    land_sf <- ne_states(country = "united states of america", returnclass = "sf")
+  }, error = function(e) {
+    message("    NOTICE: High-res coastline not found. Using medium res. (Run install.packages('rnaturalearthhires', repos='https://ropensci.r-universe.dev') for highest quality).")
+    land_sf <- ne_states(country = "united states of america", scale = "medium", returnclass = "sf")
+  })
+  
+  # Convert to terra vector and ensure the coordinate reference systems match perfectly
+  v_land <- vect(land_sf)
+  v_land <- project(v_land, crs(r_out))
+  
+  # Mask the raster. inverse = TRUE tells terra to KEEP everything that DOES NOT overlap with land
+  r_out <- terra::mask(r_out, v_land, inverse = TRUE)
   
   # Save the Final TIF
   save_name <- glue("PRED_{date_forecast}_MANTA_RAY.tif")
