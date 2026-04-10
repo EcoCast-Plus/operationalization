@@ -45,7 +45,7 @@ jobs:
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
-        cache: always
+        cache: true
         cache-version: 14 # Bumped to 13 to clear the failed resolution cache
         install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
