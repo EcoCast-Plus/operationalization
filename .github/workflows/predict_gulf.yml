@@ -45,9 +45,9 @@ jobs:
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
-        cache: true
-        cache-version: 14 # Bumped to 13 to clear the failed resolution cache
-        install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
+        cache: true 
+        cache-version: 15 
+        install-quarto: false 
         packages: |
           any::dplyr
           any::terra
@@ -77,9 +77,9 @@ jobs:
           any::ncdf4
           any::inlabru@2.12.0
           any::INLA
-          any::rnaturalearth      # <-- ADDED
-          any::rnaturalearthdata  # <-- ADDED (Contains the medium-res coastline data)
-
+          any::rnaturalearth      
+          any::rnaturalearthdata
+          
     - name: Run General Species Predictions
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
