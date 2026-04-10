@@ -55,28 +55,6 @@ find_file <- function(var_name, search_dir) {
 }
 
 # ----------------------------------------------------------------
-# HELPER: Layer Validator & Cropper
-# ----------------------------------------------------------------
-validate_layer <- function(r, name, master_grid) {
-  # Crop the large CMEMS extent down to match the bathymetry bounding box
-  r <- terra::crop(r, master_grid, snap = "out")
-  
-  if (!compareGeom(r, master_grid, stopOnError = FALSE)) {
-    r <- resample(r, master_grid, method = "bilinear")
-  }
-  if (all(is.na(values(r)))) {
-    message(glue("WARNING: Layer '{name}' is 100% NA. Filling with 0."))
-    r <- master_grid * 0
-  }
-  names(r) <- name
-  
-  # Apply the master grid's NA mask so we only keep data inside the survey footprint
-  r <- terra::mask(r, master_grid)
-  
-  return(r)
-}
-
-# ----------------------------------------------------------------
 # 4. MAIN PROCESSING
 # ----------------------------------------------------------------
 
@@ -106,34 +84,63 @@ names(r_slope) <- "Slope_deg"
 r_striparea <- master_grid * 0 + 1876712
 names(r_striparea) <- "striparea"
 
-# --- B. Load Dynamic Data & Crop to Master Grid ---
-message("Loading and Cropping Dynamic Environmental Data...")
+# --- B. Load Dynamic Data & Process Gaps ---
+message("Loading and Processing Dynamic Environmental Data...")
 
 # 1. SST (thetao)
 f_sst <- find_file("thetao", raw_dir)
 r_sst_full <- rast(f_sst)["thetao"][[1]]
 if (ext(r_sst_full)$xmax > 180) r_sst_full <- rotate(r_sst_full)
-r_sst <- validate_layer(r_sst_full, "SST", master_grid)
 
-# 2. Chlorophyll (l.chl)
-f_chl <- find_file("l.chl", raw_dir)
-r_chl_full <- rast(f_chl)["CHL"][[1]]
-if (ext(r_chl_full)$xmax > 180) r_chl_full <- rotate(r_chl_full)
-r_chl <- validate_layer(r_chl_full, "ChlA", master_grid)
+# Crop to the general bounding box to save memory, but DO NOT mask it yet
+r_sst_cropped <- terra::crop(r_sst_full, master_grid, snap = "out")
+if (!compareGeom(r_sst_cropped, master_grid, stopOnError = FALSE)) {
+  r_sst_cropped <- resample(r_sst_cropped, master_grid, method = "bilinear")
+}
 
-# 3. SST Fronts (Front_Z)
+# Extrapolate SST into the nearshore/land gaps to act as a buffer for the front calculation
+message(" -> Extrapolating SST to prevent edge-effect clipping...")
+r_sst_filled <- terra::focal(r_sst_cropped, w = 5, fun = mean, na.rm = TRUE, na.policy = "only")
+r_sst_filled <- terra::focal(r_sst_filled, w = 5, fun = mean, na.rm = TRUE, na.policy = "only")
+
+# 2. SST Fronts (Front_Z)
 message(" -> Detecting SST Fronts (BelkinOReilly2009)...")
-r_sst_raster <- raster::raster(r_sst) 
+r_sst_raster <- raster::raster(r_sst_filled) 
 r_fronts_raw <- grec::detectFronts(r_sst_raster, method = "BelkinOReilly2009", intermediate = FALSE)
 r_fronts <- rast(r_fronts_raw)
 
+# Normalize the fronts
 max_val <- global(r_fronts, "max", na.rm = TRUE)$max
 if (is.na(max_val) || max_val == 0) {
   r_fronts <- master_grid * 0
 } else {
   r_fronts <- r_fronts / max_val
 }
-r_fronts <- validate_layer(r_fronts, "Front_Z", master_grid)
+
+# 3. Apply Final Mask to SST and Fronts
+# Mask everything strictly back down to the Bathymetry footprint
+r_sst    <- terra::mask(r_sst_filled, master_grid)
+names(r_sst) <- "SST"
+
+r_fronts <- terra::mask(r_fronts, master_grid)
+names(r_fronts) <- "Front_Z"
+
+# 4. Chlorophyll (l.chl)
+f_chl <- find_file("l.chl", raw_dir)
+r_chl_full <- rast(f_chl)["CHL"][[1]]
+if (ext(r_chl_full)$xmax > 180) r_chl_full <- rotate(r_chl_full)
+
+# Crop Chl to grid
+r_chl_cropped <- terra::crop(r_chl_full, master_grid, snap = "out")
+if (!compareGeom(r_chl_cropped, master_grid, stopOnError = FALSE)) {
+  r_chl_cropped <- resample(r_chl_cropped, master_grid, method = "bilinear")
+}
+
+# Fill any nearshore gaps in Chlorophyll, then mask
+message(" -> Extrapolating ChlA nearshore gaps...")
+r_chl_filled <- terra::focal(r_chl_cropped, w = 3, fun = mean, na.rm = TRUE, na.policy = "only")
+r_chl <- terra::mask(r_chl_filled, master_grid)
+names(r_chl) <- "ChlA"
 
 # --- C. Stack & Format Dataframe ---
 message("Formatting Prediction Stack...")
@@ -187,6 +194,3 @@ tryCatch({
 })
 
 message("\nAll Manta Ray predictions completed successfully!")
-
-
-
