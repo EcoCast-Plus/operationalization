@@ -46,7 +46,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: always
-        cache-version: 13 # Bumped to 13 to clear the failed resolution cache
+        cache-version: 14 # Bumped to 13 to clear the failed resolution cache
         install-quarto: false # ADDED: Prevents the 502 Bad Gateway download error
         packages: |
           any::dplyr
