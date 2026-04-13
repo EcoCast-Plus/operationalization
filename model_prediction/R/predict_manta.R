@@ -187,23 +187,30 @@ tryCatch({
   names(r_out) <- "MANTA_RAY_PRED"
   
   # --- Coastline Clipping Step ---
-  message(" -> Clipping output to high-resolution US coastline...")
+# --- IMPROVED Coastline Clipping Step ---
+  message(" -> Clipping output using 'touches' logic to preserve nearshore pixels...")
   
-  # Load US land polygons (optimized for your specific spatial footprint)
-  tryCatch({
-    # By default, this will grab the high-res data if rnaturalearthhires is installed
-    land_sf <- ne_states(country = "united states of america", returnclass = "sf")
-  }, error = function(e) {
-    message("    NOTICE: High-res coastline not found. Using medium res. (Run install.packages('rnaturalearthhires', repos='https://ropensci.r-universe.dev') for highest quality).")
-    land_sf <- ne_states(country = "united states of america", scale = "medium", returnclass = "sf")
-  })
+  # 1. Fetch land (keep your existing logic to get land_sf)
+  land_sf <- ne_states(country = "united states of america", returnclass = "sf")
+  v_land  <- vect(land_sf)
+  v_land  <- project(v_land, crs(r_out))
+
+  # 2. Rasterize the land at the EXACT resolution of your data
+  # touches = TRUE ensures any pixel touching land is marked, 
+  # but we want to be CAREFUL here. 
+  # To avoid the blocky look, we want to keep pixels that are even partially water.
+  r_land_mask <- rasterize(v_land, r_out, field = 1) 
+
+  # 3. Use cover() or a specific mask logic
+  # We only want to mask out pixels that are FULLY land.
+  # If you want to keep pixels that "touch" the water, 
+  # we should only mask if the pixel is entirely inside the land.
   
-  # Convert to terra vector and ensure the coordinate reference systems match perfectly
-  v_land <- vect(land_sf)
-  v_land <- project(v_land, crs(r_out))
+  # ALTERNATIVE: Use a small buffer if you want to be extra safe
+  # v_land_buffered <- buffer(v_land, width = -1000) # Shrink land by 1km to keep edge pixels
   
-  # Mask the raster. inverse = TRUE tells terra to KEEP everything that DOES NOT overlap with land
-  r_out <- terra::mask(r_out, v_land, inverse = TRUE)
+  # RECOMMENDED: Masking only if the pixel is deep inland
+  r_out <- terra::mask(r_out, v_land, inverse = TRUE, touches = FALSE)
   
   # Save the Final TIF
   save_name <- glue("PRED_{date_forecast}_MANTA_RAY.tif")
