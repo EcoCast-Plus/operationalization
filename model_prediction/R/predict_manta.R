@@ -1,5 +1,5 @@
 # Predict Manta Ray (GAM) - Unified Gulf & South Atlantic
-# Optimized for pre-masked static layers and a single combined bounding box
+# Optimized for pre-masked static layers and bathymetry-based land masking
 
 # --- 1. Load Libraries ---
 library(terra)
@@ -11,7 +11,6 @@ library(bundle)
 library(mgcv)          # Required for Manta Ray (GAM) prediction
 library(grec)          # Required for SST Fronts
 library(raster)        # Required for grec compatibility
-library(rnaturalearth) # Required for high-res coastline clipping
 
 # --- 2. Define Directories ---
 # Update these paths to match your new unified repo structure
@@ -160,6 +159,11 @@ manta_stack <- c(
 # Because the static layers were pre-masked, na.rm = TRUE drops everything outside the footprint
 pred_df <- as.data.frame(manta_stack, xy = TRUE, na.rm = TRUE)
 
+# --- NEW BATHYMETRY MASKING LOGIC ---
+# Drop any pixels where elevation is > 0 (Land)
+# Note: Adjust to >= 0 if your depth raster uses positive numbers for deep water
+pred_df <- pred_df[pred_df$Depth_m <= 0, ] 
+
 if(nrow(pred_df) == 0) {
   stop("CRITICAL ERROR: Empty prediction frame. Check if your bathymetry mask aligns with CMEMS data.")
 }
@@ -183,34 +187,9 @@ tryCatch({
   # Rasterize Predictions
   r_out <- master_grid
   values(r_out) <- NA
+  # Re-insert the predictions exactly where they belong; skipped land points remain NA automatically
   r_out[cellFromXY(r_out, pred_df[, c("x", "y")])] <- preds
   names(r_out) <- "MANTA_RAY_PRED"
-  
-  # --- Coastline Clipping Step ---
-# --- IMPROVED Coastline Clipping Step ---
-  message(" -> Clipping output using 'touches' logic to preserve nearshore pixels...")
-  
-  # 1. Fetch land (keep your existing logic to get land_sf)
-  land_sf <- ne_states(country = "united states of america", returnclass = "sf")
-  v_land  <- vect(land_sf)
-  v_land  <- project(v_land, crs(r_out))
-
-  # 2. Rasterize the land at the EXACT resolution of your data
-  # touches = TRUE ensures any pixel touching land is marked, 
-  # but we want to be CAREFUL here. 
-  # To avoid the blocky look, we want to keep pixels that are even partially water.
-  r_land_mask <- rasterize(v_land, r_out, field = 1) 
-
-  # 3. Use cover() or a specific mask logic
-  # We only want to mask out pixels that are FULLY land.
-  # If you want to keep pixels that "touch" the water, 
-  # we should only mask if the pixel is entirely inside the land.
-  
-  # ALTERNATIVE: Use a small buffer if you want to be extra safe
-  # v_land_buffered <- buffer(v_land, width = -1000) # Shrink land by 1km to keep edge pixels
-  
-  # RECOMMENDED: Masking only if the pixel is deep inland
-  r_out <- terra::mask(r_out, v_land, inverse = TRUE, touches = FALSE)
   
   # Save the Final TIF
   save_name <- glue("PRED_{date_forecast}_MANTA_RAY.tif")
