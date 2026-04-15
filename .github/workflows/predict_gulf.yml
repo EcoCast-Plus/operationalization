@@ -46,7 +46,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 16 # Bumped cache-version to force a fresh install today
+        cache-version: 17 # Bumped to 17 to force a fresh install
         install-quarto: false 
         packages: |
           any::dplyr
@@ -75,7 +75,7 @@ jobs:
           any::lubridate
           any::grec
           any::ncdf4
-          any::inlabru
+          any::inlabru@2.12.0    # RESTORED VERSION LOCK
           any::INLA
           any::rnaturalearth      
           any::rnaturalearthdata
