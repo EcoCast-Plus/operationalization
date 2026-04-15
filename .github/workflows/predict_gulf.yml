@@ -38,15 +38,15 @@ jobs:
         Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update = FALSE, ask = FALSE)"
 
     - name: Configure R Repositories
-      # This globally registers the INLA server so pak knows where to find it
+      # Freezes CRAN to the exact day the models were trained
       run: |
-        echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
-
+        echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2026-02-05", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
+        
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 15 
+        cache-version: 16 # Bumped cache-version to force a fresh install today
         install-quarto: false 
         packages: |
           any::dplyr
@@ -59,23 +59,23 @@ jobs:
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost@1.7.7.1
-          any::stacks@1.0.5
-          any::tidysdm@1.0.0
-          any::bundle@0.1.2
-          any::themis@1.0.3
+          any::xgboost
+          any::stacks
+          any::tidysdm
+          any::bundle
+          any::themis
           any::sn
           any::ranger
           any::mgcv
           any::oce
-          any::tidymodels@1.2.0
+          any::tidymodels
           any::workflows
           any::parsnip
           any::glue
           any::lubridate
           any::grec
           any::ncdf4
-          any::inlabru@2.12.0
+          any::inlabru
           any::INLA
           any::rnaturalearth      
           any::rnaturalearthdata
