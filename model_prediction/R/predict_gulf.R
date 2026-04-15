@@ -279,6 +279,12 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_depredation      <- grepl("Depredation", model_name)
   
+  # --- NEW: Skip Utility Models (Prevents dplyr::all_of crashes) ---
+  if (!is_swordfish_target && !is_yellowfin_target) {
+    message(glue("Skipping {model_name}: Not a standard Swordfish or Yellowfin target model."))
+    next
+  }
+  
   model_type_log <- if(is_depredation) "Shark Depredation" else "Fishery Species"
   message(glue("Processing [{model_type_log}]: {model_name}"))
   
