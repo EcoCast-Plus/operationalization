@@ -13,12 +13,9 @@ library(grec)          # Required for SST Fronts
 library(raster)        # Required for grec compatibility
 
 # --- 2. Define Directories ---
-# Update these paths to match your new unified repo structure
 static_dir <- "model_prediction/gulf/data/manta"
 preds_dir  <- "model_prediction/gulf/predictions"
 model_path <- "model_prediction/gulf/results/MANTA_RAY_final_ensemble.rds"
-
-# Raw NetCDF download directory
 raw_dir <- "data_acquisition/netcdfs/cmems_ncdfs"
 
 # --- 3. Date Logic ---
@@ -28,30 +25,47 @@ date_obs      <- Sys.Date() - 1
 message(glue("Prediction Run for Forecast Date: {date_forecast}"))
 
 # ----------------------------------------------------------------
-# HELPER: Smart File Finder 
+# HELPER: Smart File Loader with "Look-Back" Logic
 # ----------------------------------------------------------------
-find_file <- function(var_name, search_dir) {
-  target_date <- date_forecast
-  
-  # Observation variables (Chl, SST) use yesterday's date
-  if (var_name %in% c("l.chl")) target_date <- date_obs 
-  
-  pattern_exact <- glue("_{var_name}_{target_date}")
-  files_exact <- list.files(search_dir, pattern = pattern_exact, full.names = TRUE)
-  
-  if (length(files_exact) > 0) return(files_exact[1])
-  
-  message(glue("NOTICE: Exact file missing for {var_name} on {target_date}. Searching for most recent..."))
+load_raw <- function(var_name, nc_var) {
   pattern_general <- glue("_{var_name}_\\d{{4}}-\\d{{2}}-\\d{{2}}")
-  files_all <- list.files(search_dir, pattern = pattern_general, full.names = TRUE)
+  files_all <- list.files(raw_dir, pattern = pattern_general, full.names = TRUE)
   
-  if (length(files_all) == 0) stop(glue("CRITICAL ERROR: No files found for '{var_name}' in {search_dir}"))
+  if (length(files_all) == 0) {
+    stop(glue("CRITICAL ERROR: No files found for variable '{var_name}' in {raw_dir}"))
+  }
   
+  # Sort descending (newest dates first)
   files_sorted <- sort(files_all, decreasing = TRUE)
-  best_file <- files_sorted[1]
   
-  message(glue(" -> Found substitute: {basename(best_file)}"))
-  return(best_file)
+  # Loop through files from newest to oldest until we find valid data
+  for (f in files_sorted) {
+    r <- rast(f)[nc_var][[1]]
+    
+    # Calculate raster statistics
+    stats <- global(r, fun = c("min", "max", "notNA"), na.rm = TRUE)
+    
+    is_empty     <- stats$notNA == 0
+    is_all_zeros <- (stats$notNA > 0) && (stats$min == 0) && (stats$max == 0)
+    
+    if (!is_empty && !is_all_zeros) {
+      if (ext(r)$xmax > 180) r <- rotate(r)
+      
+      if (f != files_sorted[1]) {
+        message(glue(" -> NOTICE: Latest '{var_name}' was empty/zero. Used fallback: {basename(f)}"))
+      }
+      return(r)
+    } else {
+      message(glue(" -> Skipping {basename(f)} (Data is 100% NA or 0). Looking for older data..."))
+    }
+  }
+  
+  # If every file is empty, return 0s as absolute last resort
+  message(glue("CRITICAL WARNING: All available files for {var_name} are empty! Returning 0s as absolute last resort."))
+  r <- rast(files_sorted[1])[nc_var][[1]]
+  if (ext(r)$xmax > 180) r <- rotate(r)
+  r <- r * 0 
+  return(r)
 }
 
 # ----------------------------------------------------------------
@@ -89,9 +103,7 @@ names(r_striparea) <- "striparea"
 message("Loading and Processing Dynamic Environmental Data...")
 
 # 1. SST (thetao)
-f_sst <- find_file("thetao", raw_dir)
-r_sst_full <- rast(f_sst)["thetao"][[1]]
-if (ext(r_sst_full)$xmax > 180) r_sst_full <- rotate(r_sst_full)
+r_sst_full <- load_raw("thetao", "thetao")
 
 # Crop to the general bounding box to save memory, but DO NOT mask it yet
 r_sst_cropped <- terra::crop(r_sst_full, master_grid, snap = "out")
@@ -119,7 +131,6 @@ if (is.na(max_val) || max_val == 0) {
 }
 
 # 3. Apply Final Mask to SST and Fronts
-# Mask everything strictly back down to the Bathymetry footprint
 r_sst    <- terra::mask(r_sst_filled, master_grid)
 names(r_sst) <- "SST"
 
@@ -127,9 +138,7 @@ r_fronts <- terra::mask(r_fronts, master_grid)
 names(r_fronts) <- "Front_Z"
 
 # 4. Chlorophyll (l.chl)
-f_chl <- find_file("l.chl", raw_dir)
-r_chl_full <- rast(f_chl)["CHL"][[1]]
-if (ext(r_chl_full)$xmax > 180) r_chl_full <- rotate(r_chl_full)
+r_chl_full <- load_raw("l.chl", "CHL")
 
 # Crop Chl to grid
 r_chl_cropped <- terra::crop(r_chl_full, master_grid, snap = "out")
@@ -156,12 +165,25 @@ manta_stack <- c(
   r_striparea
 )
 
+# --- NEW SAFETY CHECK: Prevent Empty Dataframes ---
+message("Checking for 100% NA layers before creating dataframe...")
+
+for (i in 1:nlyr(manta_stack)) {
+  if (all(is.na(values(manta_stack[[i]])))) {
+    layer_name <- names(manta_stack)[i]
+    message(glue("  -> WARNING: Layer '{layer_name}' is 100% NA! Filling with 0 to save prediction frame."))
+    
+    r_zero <- master_grid * 0
+    names(r_zero) <- layer_name
+    manta_stack[[i]] <- r_zero
+  }
+}
+
 # Because the static layers were pre-masked, na.rm = TRUE drops everything outside the footprint
 pred_df <- as.data.frame(manta_stack, xy = TRUE, na.rm = TRUE)
 
 # --- NEW BATHYMETRY MASKING LOGIC ---
 # Drop any pixels where elevation is > 0 (Land)
-# Note: Adjust to >= 0 if your depth raster uses positive numbers for deep water
 pred_df <- pred_df[pred_df$Depth_m <= 0, ] 
 
 if(nrow(pred_df) == 0) {
@@ -187,7 +209,6 @@ tryCatch({
   # Rasterize Predictions
   r_out <- master_grid
   values(r_out) <- NA
-  # Re-insert the predictions exactly where they belong; skipped land points remain NA automatically
   r_out[cellFromXY(r_out, pred_df[, c("x", "y")])] <- preds
   names(r_out) <- "MANTA_RAY_PRED"
   
