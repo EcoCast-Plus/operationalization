@@ -46,7 +46,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 18 # Bumped to 18 to force a fresh install
+        cache-version: 19 # Bumped to 19 to force the downgrade
         install-quarto: false 
         packages: |
           any::dplyr
@@ -59,7 +59,7 @@ jobs:
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost
+          any::xgboost@1.7.7.1
           any::stacks
           any::tidysdm
           any::bundle
@@ -68,14 +68,14 @@ jobs:
           any::ranger
           any::mgcv
           any::oce
-          any::tidymodels
+          any::tidymodels@1.2.0
           any::workflows
-          any::parsnip
+          any::parsnip@1.2.1
           any::glue
           any::lubridate
           any::grec
           any::ncdf4
-          any::inlabru@2.12.0    
+          any::inlabru@2.12.0
           any::INLA
           any::rnaturalearth      
           any::rnaturalearthdata
