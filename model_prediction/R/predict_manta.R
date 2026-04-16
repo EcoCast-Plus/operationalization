@@ -212,10 +212,9 @@ tryCatch({
   r_out[cellFromXY(r_out, pred_df[, c("x", "y")])] <- preds
   names(r_out) <- "MANTA_RAY_PRED"
   
-  # Save the Final TIF
-  save_name <- glue("PRED_{date_forecast}_MANTA_RAY.tif")
+  # Save the Final Prediction TIF (Added _PRED to make it distinct)
+  save_name <- glue("PRED_{date_forecast}_MANTA_RAY_PRED.tif")
   save_path <- file.path(preds_dir, save_name)
-  
   writeRaster(r_out, save_path, overwrite = TRUE)
   message(glue(" -> SUCCESS: Saved to {save_path}"))
   
@@ -223,4 +222,23 @@ tryCatch({
   stop(glue(" -> ERROR during prediction: {e$message}"))
 })
 
-message("\nAll Manta Ray predictions completed successfully!")
+# --- E. Export Environmental Layers for Manta Viewer ---
+message("Exporting Environmental Layers for Viewer...")
+
+# Naming these with MANTA_RAY ensures the GulfCast app ignores them automatically
+env_export <- list(
+  "MANTA_RAY_SST" = r_sst,
+  "MANTA_RAY_CHL" = r_chl,
+  "MANTA_RAY_FRONTS" = r_fronts,
+  "MANTA_RAY_BATHYMETRY" = r_depth,
+  "MANTA_RAY_SLOPE" = r_slope
+)
+
+for (var_name in names(env_export)) {
+  save_name_env <- glue("PRED_{date_forecast}_{var_name}.tif")
+  save_path_env <- file.path(preds_dir, save_name_env)
+  writeRaster(env_export[[var_name]], save_path_env, overwrite = TRUE)
+  message(glue(" -> Exported Env: {save_name_env}"))
+}
+
+message("\nAll Manta Ray predictions and environmental exports completed successfully!")
