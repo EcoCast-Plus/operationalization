@@ -13,7 +13,7 @@ jobs:
   predict-gulf:
     # Only run if the download was successful OR if triggered manually
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     
@@ -38,15 +38,15 @@ jobs:
         Rscript -e "BiocManager::install(c('graph', 'Rgraphviz'), update = FALSE, ask = FALSE)"
 
     - name: Configure R Repositories
-      # Freezes CRAN to the exact day the models were trained
+      # This globally registers the INLA server so pak knows where to find it
       run: |
-        echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2026-02-05", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
-        
+        echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
+
     - name: Install R Dependencies with Version Locking
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 20 # Bumped to 20 to clear the old xgboost version
+        cache-version: 21 
         install-quarto: false 
         packages: |
           any::dplyr
@@ -59,23 +59,23 @@ jobs:
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost             
-          any::stacks
-          any::tidysdm
-          any::bundle
-          any::themis
+          any::xgboost@1.7.7.1
+          any::stacks@1.0.5
+          any::tidysdm@1.0.0
+          any::bundle@0.1.2
+          any::themis@1.0.3
           any::sn
           any::ranger
           any::mgcv
           any::oce
-          any::tidymodels          
-          any::workflows
-          any::parsnip             
+          any::tidymodels@1.2.0
+          any::workflows@1.1.4
+          any::parsnip@1.2.1
           any::glue
           any::lubridate
           any::grec
           any::ncdf4
-          any::inlabru@2.12.0      
+          any::inlabru@2.12.0
           any::INLA
           any::rnaturalearth      
           any::rnaturalearthdata
