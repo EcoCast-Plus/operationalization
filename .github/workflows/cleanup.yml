@@ -1,0 +1,41 @@
+name: Repository Cleanup
+
+on:
+  # Runs automatically every day at 2:00 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+  # Allows you to trigger the workflow manually from the Actions tab
+  workflow_dispatch: 
+
+permissions:
+  # CRITICAL: Required to allow the script to delete files via the GitHub API
+  contents: write 
+
+jobs:
+  cleanup-old-files:
+    runs-on: ubuntu-latest
+    env:
+      # Maps the automatic GitHub token to the environment variable your R script expects
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.3.3' # Matching the R version used in your other workflows
+
+    - name: Install Required R Packages
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: true
+        packages: |
+          any::httr
+          any::jsonlite
+          any::lubridate
+          any::stringr
+
+    - name: Run Cleanup Script
+      run: Rscript repo_cleanup/delete_old_files.R
