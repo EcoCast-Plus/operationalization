@@ -37,5 +37,11 @@ jobs:
           any::lubridate
           any::stringr
 
-    - name: Run Cleanup Script
-      run: Rscript repo_cleanup/delete_old_files.R
+    - name: Run Cleanup
+      run: |
+        Rscript repo_cleanup/delete_old_files.R # (Rewrite this script to just delete files locally)
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        git add -u  # Stages all deleted files
+        git commit -m "Automated cleanup of old data files" || echo "No files to delete"
+        git push origin main
