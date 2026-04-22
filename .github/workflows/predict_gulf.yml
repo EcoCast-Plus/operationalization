@@ -76,8 +76,10 @@ jobs:
       run: Rscript model_prediction/R/predict_manta.R
 
     - name: Set up Google Cloud Auth
+      env:
+        GCS_SECRET: ${{ secrets.GCS_SA_KEY }}
       run: |
-        echo '${{ secrets.GCS_SA_KEY }}' > gcs_auth.json
+        printf "%s" "$GCS_SECRET" > gcs_auth.json
         echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
 
     - name: Run Leatherback Turtle Prediction
