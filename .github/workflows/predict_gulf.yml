@@ -81,6 +81,20 @@ jobs:
       run: |
         printf "%s" "$GCS_SECRET" > gcs_auth.json
         echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
+    
+    - name: Set up Google Cloud Auth
+      env:
+        GCS_SECRET: ${{ secrets.GCS_SA_KEY }}
+      run: |
+        printf "%s" "$GCS_SECRET" > gcs_auth.json
+        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
+
+    # --- ADD THIS TEMPORARY STEP ---
+    - name: Get Service Account Email
+      run: |
+        echo "YOUR SERVICE ACCOUNT EMAIL IS:"
+        jq -r .client_email gcs_auth.json
+
 
     - name: Run Leatherback Turtle Prediction
       continue-on-error: true 
