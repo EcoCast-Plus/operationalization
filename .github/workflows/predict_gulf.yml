@@ -13,8 +13,8 @@ jobs:
   predict-gulf:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    # Massive Speed Boost: Use pre-built environment with GDAL/GEOS already installed
-    container: ghcr.io/rocker-org/geospatial:4.3.3
+    # Update to 4.4 (Ubuntu 24.04) to satisfy INLA's new glibc requirements
+    container: ghcr.io/rocker-org/geospatial:4.4
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     
@@ -31,7 +31,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 22 # Bumped to 22 to build a fresh, unfragmented cache
+        cache-version: 23 # Bump to 23 for the new R 4.4 environment
         install-quarto: false 
         packages: |
           bioc::graph
