@@ -93,6 +93,11 @@ jobs:
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
         
+        # --- NEW: Prevent Git from choking on large binary TIFF pushes ---
+        git config --global http.postBuffer 524288000
+        git config --global http.maxRequestBuffer 100M
+        git config --global core.compression 0
+        
         # 1. Stage the new predictions first
         git add model_prediction/gulf/predictions/*.tif || echo "No TIFs"
         git add model_prediction/gulf/predictions/*.png || echo "No PNGs"
