@@ -38,6 +38,10 @@ website:
         href: hawaii/placeholder.qmd
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
+      - text: "Northwest"
+        href: northwest/placeholder.qmd
+      - text: "Alaska"
+        href: alaska/placeholder.qmd
 
   page-navigation: true
 

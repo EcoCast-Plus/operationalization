@@ -1,20 +1,172 @@
+/* --- GLOBAL VARIABLES --- */
+:root {
+  --noaa-blue: #003087;
+  --noaa-accent: #005da2;
+  --text-white: #ffffff;
+}
 
-/* Spinner */
-.loader {
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #3498db;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  animation: spin 1s linear infinite;
-  margin: 10px auto;
+/* --- GLOBAL FIXES --- */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; 
 }
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+
+/* Neutralize Quarto's default container padding/margins */
+#quarto-content, 
+#quarto-content.page-columns,
+main.content {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
-#spinner p {
+
+/* --- FULL WIDTH HERO BANNER FIX --- */
+.hero-wrapper {
+  /* Break out of the container to hit the edges */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  
+  /* Pull the banner up to touch the light blue navbar */
+  /* If there is still a tiny gap, increase this to -10px or -20px */
+  margin-top: 0px; 
+  
+  background-color: var(--noaa-blue);
+  padding: 3rem 0;
+  box-sizing: border-box;
+}
+
+.hero-banner {
+  max-width: 1000px;
+  margin: 0 auto;
   text-align: center;
-  font-weight: bold;
+  padding: 0 1rem;
+}
+
+/* Force text colors to white */
+.hero-banner h1, .hero-banner h3, .hero-banner p {
+  color: white !important;
+}
+
+.hero-banner h1 {
+  font-weight: 800;
+  font-size: 3rem; /* Slightly smaller font to match shorter banner */
+  margin-bottom: 0.5rem;
+}
+
+.hero-banner .lead {
+  font-size: 1.3rem;
+  font-weight: 300;
+  opacity: 0.9;
+  margin-top: 0.5rem;
+}
+
+/* --- ICON GRID LAYOUT --- */
+.icon-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.icon-item {
+  width: 180px;
+  text-align: center;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.icon-item:hover {
+  transform: translateY(-5px);
+}
+
+.icon-circle {
+  background-color: var(--noaa-blue);
+  color: white;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  margin: 0 auto 1rem auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.icon-item:hover .icon-circle {
+  background-color: var(--noaa-accent);
+}
+
+/* --- IMAGE ICONS --- */
+.icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Disabled State */
+.disabled-item {
+  opacity: 0.5;
+  cursor: default;
+}
+.disabled-item:hover {
+  transform: none;
+}
+.disabled-circle {
+  background-color: #ccc;
+}
+.disabled-item .icon-img {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+/* Text Styling */
+.icon-title {
+  font-weight: 700;
   color: #333;
+  font-size: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+
+.icon-text {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+a.icon-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* --- CENTERED LAYOUT TWEAKS --- */
+header#title-block-header {
+  max-width: 1200px;
+  margin: 2rem auto 2rem auto;
+  padding: 0 1rem;
+}
+
+.column-page-inset {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dropdown-menu {
+  border-top: 3px solid var(--noaa-accent);
+}
+
+.dropdown-item:active, .dropdown-item:focus {
+  background-color: var(--noaa-blue);
+  color: white;
+}
+
+.navbar {
+  margin-bottom: 0 !important;
+  border-bottom: none !important;
 }

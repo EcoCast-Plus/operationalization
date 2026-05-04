@@ -1,110 +1,107 @@
 [
   {
-    "objectID": "lbst_cmems.html",
-    "href": "lbst_cmems.html",
+    "objectID": "west_coast/lbst_cmems.html",
+    "href": "west_coast/lbst_cmems.html",
     "title": "Leatherback CMEMS model",
     "section": "",
-    "text": "The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.\nStatus of environmental products from CMEMS:",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback CMEMS model"
-    ]
+    "text": "The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.\nStatus of environmental products from CMEMS:"
   },
   {
-    "objectID": "lbst_cmems.html#latest-map-products",
-    "href": "lbst_cmems.html#latest-map-products",
+    "objectID": "west_coast/lbst_cmems.html#latest-map-products",
+    "href": "west_coast/lbst_cmems.html#latest-map-products",
     "title": "Leatherback CMEMS model",
     "section": "Latest Map Products",
-    "text": "Latest Map Products\n\n\n\n\n\n\n\n\n\nLatest\n\n\nLatest - 1\n\n\nLatest - 2\n\n\nLatest - 3",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback CMEMS model"
-    ]
+    "text": "Latest Map Products\n\nlibrary(bslib)\nlibrary(htmltools)\nlibrary(httr)\nlibrary(glue)\n\nbs_theme_dependencies(bs_theme(preset = \"bootstrap\")) |&gt;\n  lapply(function(x) {\n    if (x$name == \"bootstrap\") {\n      x$name &lt;- \"bootstrap-from-bslib\"\n    }\n    x\n  }) |&gt;\n  htmltools::tagList()\n\n\n# Find latest products in GH repo\nprods &lt;- GET(\"https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/img\")\nstop_for_status(prods)\nfilelist &lt;- unlist(lapply(content(prods), \"[\", \"name\"), use.names = F)\nprod_dates &lt;- data.frame(idx = seq_along(filelist),\n                         date = gsub(\"^[A-Za-z]+\\\\_|\\\\.png$\", \"\", filelist) |&gt; \n                           as.Date()\n                         )\n\nlatest &lt;- prod_dates |&gt; \n  arrange(desc(date))\n\n# Create tabset panel for latest products\nnavset_card_tab(\n  nav_panel(title = \"Latest\",\n            img(src = glue(\"https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[1]]}?raw=true\", width = \"100%\"))),\n  nav_panel(title = \"Latest - 1\",\n            img(src = glue(\"https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[2]]}?raw=true\", width = \"100%\"))),\n  nav_panel(title = \"Latest - 2\",\n            img(src = glue(\"https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[3]]}?raw=true\", width = \"100%\"))),\n  nav_panel(title = \"Latest - 3\",\n            img(src = glue(\"https://github.com/joshcullen/CEG_operationalization/blob/main/model_prediction/TopPredatorWatch/img/{filelist[latest$idx[4]]}?raw=true\", width = \"100%\")))\n  )"
   },
   {
-    "objectID": "lbst_cmems.html#interactive-map",
-    "href": "lbst_cmems.html#interactive-map",
+    "objectID": "west_coast/lbst_cmems.html#interactive-map",
+    "href": "west_coast/lbst_cmems.html#interactive-map",
     "title": "Leatherback CMEMS model",
     "section": "Interactive Map",
-    "text": "Interactive Map\nThis example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail.",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback CMEMS model"
-    ]
+    "text": "Interactive Map\nThis example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail. Only the latest 60 days of data and predictions are shown at the moment."
   },
   {
-    "objectID": "lbst_cmems.html#download-map-products-and-raster-layers",
-    "href": "lbst_cmems.html#download-map-products-and-raster-layers",
+    "objectID": "west_coast/lbst_cmems.html#download-map-products-and-raster-layers",
+    "href": "west_coast/lbst_cmems.html#download-map-products-and-raster-layers",
     "title": "Leatherback CMEMS model",
     "section": "Download Map Products and Raster Layers",
-    "text": "Download Map Products and Raster Layers\n\nFrom website\n\nStart Date: \nEnd Date: \n\nDownload products Download rasters\n\n\n\n\n\n\n\n\n\n\n\nDownloading files…\n\n\n\n\n\nFrom GitHub\nClone the repository: https://github.com/joshcullen/CEG_operationalization\n\n\nFrom R\n\nlibrary(curl)\nlibrary(httr)\nlibrary(tidyverse)\nlibrary(glue)\n\ndownload_files_git = function(save_dir, file_type, start_date, end_date){\n  \n  folder &lt;- switch(file_type,\n                   \"raster\" = \"rasters\",\n                   \"image\" = \"img\")\n  \n  # Find files from repo folder\n  prods &lt;- httr::GET(glue(\"https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/{folder}\"))\n  httr::stop_for_status(prods)  #check to make sure no errors w/ request (should return nothing to console if working properly)\n  filelist &lt;- unlist(lapply(content(prods), \"[\", \"name\"), use.names = F)\n  prod_df &lt;- data.frame(files = filelist,\n                        date = gsub(\"^[A-Za-z]+\\\\_|\\\\.tiff$\", \"\", filelist) |&gt; \n                          as.Date()\n  )\n  \n  # Filter files by date range\n  prod_filt &lt;- prod_df |&gt; \n    filter(date &gt;= as.Date(start_date),\n           date &lt;= as.Date(end_date)) |&gt; \n    pull(files)\n  \n  git_url &lt;- glue(\"https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/TopPredatorWatch/{folder}/{prod_filt}\")\n  file_dest &lt;- glue(\"{save_dir}/{prod_filt}\")\n  \n  curl::multi_download(urls = git_url, destfiles = file_dest)\n}\n\n# Download files\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"raster\",\n                   start_date = \"2025-06-25\",\n                   end_date = \"2025-06-30\")\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"image\",\n                   start_date = \"2025-06-25\",\n                   end_date = \"2025-06-30\")",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback CMEMS model"
-    ]
+    "text": "Download Map Products and Raster Layers\n\nFrom website\n\nStart Date: \nEnd Date: \n\nDownload products Download rasters\n\n\n\n\n\n\n\n\n\n\n\nDownloading files…\n\n\n\n\n\nFrom GitHub\nClone the repository: https://github.com/joshcullen/CEG_operationalization\n\n\nFrom R\n\nlibrary(curl)\nlibrary(httr)\nlibrary(tidyverse)\nlibrary(glue)\n\ndownload_files_git = function(save_dir, file_type, start_date, end_date){\n  \n  folder &lt;- switch(file_type,\n                   \"raster\" = \"rasters\",\n                   \"image\" = \"img\")\n  \n  # Find files from repo folder\n  prods &lt;- httr::GET(glue(\"https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/TopPredatorWatch/{folder}\"))\n  httr::stop_for_status(prods)  #check to make sure no errors w/ request (should return nothing to console if working properly)\n  filelist &lt;- unlist(lapply(content(prods), \"[\", \"name\"), use.names = F)\n  prod_df &lt;- data.frame(files = filelist,\n                        date = gsub(\"^[A-Za-z]+\\\\_|\\\\.tiff$\", \"\", filelist) |&gt; \n                          as.Date()\n  )\n  \n  # Filter files by date range\n  prod_filt &lt;- prod_df |&gt; \n    filter(date &gt;= as.Date(start_date),\n           date &lt;= as.Date(end_date)) |&gt; \n    pull(files)\n  \n  git_url &lt;- glue(\"https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/TopPredatorWatch/{folder}/{prod_filt}\")\n  file_dest &lt;- glue(\"{save_dir}/{prod_filt}\")\n  \n  curl::multi_download(urls = git_url, destfiles = file_dest)\n}\n\n# Download files\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"raster\",\n                   start_date = \"2025-06-25\",\n                   end_date = \"2025-06-30\")\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"image\",\n                   start_date = \"2025-06-25\",\n                   end_date = \"2025-06-30\")"
   },
   {
-    "objectID": "leatherback.html",
-    "href": "leatherback.html",
-    "title": "Leatherback DOM tools",
+    "objectID": "hawaii/placeholder.html",
+    "href": "hawaii/placeholder.html",
+    "title": "EcoCast Plus",
     "section": "",
-    "text": "As an endangered species, leatherback turtles are protected under the Endangered Species Act, which also frequently their consideration in fisheries management plans. Given the ubiquity of this consideration for a number of West Coast fisheries, a number of different species distribution models have been built to predict where these turtles are likely to occur in near-real time. This webpage includes a couple examples of models included in Welch et al (2023) and in Lezama-Ochoa et al (2025) based on two different environmental datasets: Copernicus Marine Environmental Monitoring Service (CMEMS) and Regional Ocean Modeling System.\n\nCMEMS\n\n\nBased on one set of selected environmental covariates from CMEMS, this model was used within a set of other SDMs for top predators to determine shifting distributions related to marine heatwaves. Models were fitted using a Boosted Regression Tree and are predicted for the US West Coast. The most recent map product can be found to the right of this text.\nLearn more about these models here and explore the model predictions here.\n\n\n\n\n\n\n\n\n\n\nROMS\n\n\nThis model is very similar to that of the other model developed as part of Top Predator Watch, but relies on a slightly different set of environmental variables using a different data assimilative model specific to the US West Coast. The mapped prediction from this model can be seen to the right of this text.\nLearn more about these models here and explore the model predictions here.",
-    "crumbs": [
-      "Leatherback Sea Turtle"
-    ]
+    "text": "Coming soon"
   },
   {
-    "objectID": "lbst_roms.html",
-    "href": "lbst_roms.html",
-    "title": "Leatherback ROMS model",
+    "objectID": "hawaii/placeholder.html#hawaii",
+    "href": "hawaii/placeholder.html#hawaii",
+    "title": "EcoCast Plus",
     "section": "",
-    "text": "The most recent map products from the model are shown below, in addition to an interactive map of the latest prediction.\nStatus of environmental products from ROMS:\nROMS THREDDS server\nROMS has been down for 81 days",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback ROMS model"
-    ]
+    "text": "Coming soon"
   },
   {
-    "objectID": "lbst_roms.html#latest-map-products",
-    "href": "lbst_roms.html#latest-map-products",
-    "title": "Leatherback ROMS model",
-    "section": "Latest Map Products",
-    "text": "Latest Map Products\n\n\n\n\n\n\n\n\n\nLatest\n\n\nLatest - 1\n\n\nLatest - 2\n\n\nLatest - 3",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback ROMS model"
-    ]
-  },
-  {
-    "objectID": "lbst_roms.html#interactive-map",
-    "href": "lbst_roms.html#interactive-map",
-    "title": "Leatherback ROMS model",
-    "section": "Interactive Map",
-    "text": "Interactive Map\nThis example shows both model predictions and environmental covariates used to estimate the models. Change the date and selected variable to explore these relationships in more detail.",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback ROMS model"
-    ]
-  },
-  {
-    "objectID": "lbst_roms.html#download-map-products-and-raster-layers",
-    "href": "lbst_roms.html#download-map-products-and-raster-layers",
-    "title": "Leatherback ROMS model",
-    "section": "Download Map Products and Raster Layers",
-    "text": "Download Map Products and Raster Layers\n\nFrom website\n\nStart Date: \nEnd Date: \n\nDownload products Download rasters\n\n\n\n\n\n\n\n\n\n\n\nDownloading files…\n\n\n\n\n\nFrom GitHub\nClone the repository: https://github.com/joshcullen/CEG_operationalization\n\n\nFrom R\n\nlibrary(curl)\nlibrary(httr)\nlibrary(tidyverse)\nlibrary(glue)\n\ndownload_files_git = function(save_dir, file_type, start_date, end_date){\n  \n  folder &lt;- switch(file_type,\n                   \"raster\" = \"rasters\",\n                   \"image\" = \"img\")\n  \n  # Find files from repo folder\n  prods &lt;- httr::GET(glue(\"https://api.github.com/repos/joshcullen/CEG_operationalization/contents/model_prediction/ROMS/{folder}\"))\n  httr::stop_for_status(prods)  #check to make sure no errors w/ request (should return nothing to console if working properly)\n  filelist &lt;- unlist(lapply(content(prods), \"[\", \"name\"), use.names = F)\n  prod_df &lt;- data.frame(files = filelist,\n                        date = gsub(\"^[A-Za-z]+\\\\_|\\\\.tiff$\", \"\", filelist) |&gt; \n                          as.Date()\n  )\n  \n  # Filter files by date range\n  prod_filt &lt;- prod_df |&gt; \n    filter(date &gt;= as.Date(start_date),\n           date &lt;= as.Date(end_date)) |&gt; \n    pull(files)\n  \n  git_url &lt;- glue(\"https://raw.githubusercontent.com/joshcullen/CEG_operationalization/main/model_prediction/ROMS/{folder}/{prod_filt}\")\n  file_dest &lt;- glue(\"{save_dir}/{prod_filt}\")\n  \n  curl::multi_download(urls = git_url, destfiles = file_dest)\n}\n\n# Download files\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"raster\",\n                   start_date = \"2024-11-08\",\n                   end_date = \"2024-11-30\")\ndownload_files_git(save_dir = \"~/Downloads\",\n                   file_type = \"image\",\n                   start_date = \"2024-11-08\",\n                   end_date = \"2024-11-30\")",
-    "crumbs": [
-      "Leatherback Sea Turtle",
-      "Leatherback ROMS model"
-    ]
+    "objectID": "gulf/pelagic_longline.html",
+    "href": "gulf/pelagic_longline.html",
+    "title": "GulfCast: Pelagic Longline Bycatch Reduction Tool",
+    "section": "",
+    "text": "Open Mobile-Friendly View"
   },
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "DOM Tools",
+    "title": "\nEcoCast Plus\n",
     "section": "",
-    "text": "DOM Tools\nThis webpage contains products from a set of DOM tools that are used to predict the distribution of leatherback turtles (Dermochelys coriacea) along the US West Coast. While tools for other species exist, they have not yet been included here. This webpage serves as a proof-of-concept platform to demonstrate how the use of features from GitHub (such as GitHub Actions for operationalization and GitHub pages for website hosting) can be used to deploy and maintain DOM tools using freely available cloud services.\nDirect any questions or feedback through to jacullen@ucsc.edu, or add a GitHub Issue.",
-    "crumbs": [
-      "Home"
-    ]
+    "text": "Operational Dynamic Ocean Management\n\n\nDelivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.\n\n\n\n\n\n\n\nRegional Toolkits\n\n\nSelect a region to access operational models.\n\n\n\n\n\n\n\n\n\nWest Coast\n\n\nLeatherback & Swordfish Tools\n\n\n\n\n\n\n\n\n\nGulf of America\n\n\nPelagic Longline Optimization\n\n\n\n\n\n\n\n\nHawaii\n\n\nComing Soon\n\n\n\n\n\n\n\nSouth Atlantic\n\n\nComing Soon\n\n\n\n\n\n\n\nNorthwest\n\n\nComing Soon\n\n\n\n\n\n\n\nAlaska\n\n\nComing Soon\n\n\n\n\n\n\n\nAbout the Initiative\n\n\nEcoCast Plus integrates real-time oceanographic data from Copernicus Marine Service (CMEMS) and ROMS models to generate daily predictive surfaces. Our goal is to maximize fishing opportunity while minimizing bycatch interactions.\n\n\n\n\nSystem Status\n\n\n\n\n Data Feeds: Active (CMEMS/ROMS)\n\n\n Models: Operational\n\n\n\n\nTechnical Support:\n\n\n  Sarah Roberts (NOAA) \n\n\n  Josh Cullen (UCSC) \n\n\n\n\n\n\n\nHelp Us Improve\n\n\nWe actively update these tools based on stakeholder input. If you encounter a bug or have a suggestion, please let us know.\n\n  Provide Feedback"
+  },
+  {
+    "objectID": "alaska/placeholder.html",
+    "href": "alaska/placeholder.html",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "alaska/placeholder.html#alaska",
+    "href": "alaska/placeholder.html#alaska",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "south_atlantic/placeholder.html",
+    "href": "south_atlantic/placeholder.html",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "south_atlantic/placeholder.html#south-atlantic",
+    "href": "south_atlantic/placeholder.html#south-atlantic",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "northwest/placeholder.html",
+    "href": "northwest/placeholder.html",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "northwest/placeholder.html#northwest",
+    "href": "northwest/placeholder.html#northwest",
+    "title": "EcoCast Plus",
+    "section": "",
+    "text": "Coming soon"
+  },
+  {
+    "objectID": "west_coast/leatherback.html",
+    "href": "west_coast/leatherback.html",
+    "title": "Leatherback DOM tools",
+    "section": "",
+    "text": "As an endangered species, leatherback turtles are protected under the Endangered Species Act, which also frequently their consideration in fisheries management plans. Given the ubiquity of this consideration for a number of West Coast fisheries, a number of different species distribution models have been built to predict where these turtles are likely to occur in near-real time. This webpage includes a couple examples of models included in Welch et al (2023) and in Lezama-Ochoa et al (2025) based on two different environmental datasets: Copernicus Marine Environmental Monitoring Service (CMEMS) and Regional Ocean Modeling System.\n\nCMEMS\n\n\nBased on one set of selected environmental covariates from CMEMS, this model was used within a set of other SDMs for top predators to determine shifting distributions related to marine heatwaves. Models were fitted using a Boosted Regression Tree and are predicted for the US West Coast. The most recent map product can be found to the right of this text.\nLearn more about these models here and explore the model predictions here.\n\n\n\n\n\n\n\n\n\n\nROMS\n\n\nThis model is very similar to that of the other model developed as part of Top Predator Watch, but relies on a slightly different set of environmental variables using a different data assimilative model specific to the US West Coast. The mapped prediction from this model can be seen to the right of this text.\nLearn more about these models here and explore the model predictions here."
   }
 ]

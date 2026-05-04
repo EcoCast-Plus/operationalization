@@ -60,6 +60,22 @@ css: styles.css
 <div class="icon-text">Coming Soon</div>
 </div>
 
+<div class="icon-item disabled-item">
+<div class="icon-circle disabled-circle">
+<img src="images/icon_nw.png" class="icon-img" alt="Northwest">
+</div>
+<div class="icon-title">Northwest</div>
+<div class="icon-text">Coming Soon</div>
+</div>
+
+<div class="icon-item disabled-item">
+<div class="icon-circle disabled-circle">
+<img src="images/icon_ak.png" class="icon-img" alt="Alaska">
+</div>
+<div class="icon-title">Alaska</div>
+<div class="icon-text">Coming Soon</div>
+</div>
+
 </div>
 
 <hr style="max-width: 80%; margin: 4rem auto; border-top: 2px solid #eee;">
