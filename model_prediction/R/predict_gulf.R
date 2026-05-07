@@ -222,7 +222,8 @@ for (i in 1:nlyr(full_stack)) {
   }
 }
 
-pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE)
+pred_df <- as.data.frame(full_stack, xy = TRUE, na.rm = TRUE) %>%
+  mutate(geometry = NA) # <--- Add this line so the column exists!
 
 if (nrow(pred_df) > 0) {
   # Type Casting
@@ -250,7 +251,7 @@ fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
   "tke", "thetao_150m", "thetao_500m", "day_hours", "night_hours", 
-  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore"
+  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore", "geometry"
 )
 
 inputs_swordfish <- list(number_light_sticks = 352, number_of_floats = 193, soak_duration = 8, day_hours = 2, night_hours = 2)
