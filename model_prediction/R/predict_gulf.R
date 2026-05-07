@@ -245,13 +245,15 @@ message(glue("Prediction Points: {nrow(pred_df)}"))
 if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
 
 # ----------------------------------------------------------------
+# ----------------------------------------------------------------
 # 6. PREDICTION LOOP
 # ----------------------------------------------------------------
 fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
   "tke", "thetao_150m", "thetao_500m", "day_hours", "night_hours", 
-  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore", "geometry"
+  "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore",
+  "geometry" # <--- ADDED: Prevents CPUE tidymodels from crashing
 )
 
 inputs_swordfish <- list(number_light_sticks = 352, number_of_floats = 193, soak_duration = 8, day_hours = 2, night_hours = 2)
@@ -296,14 +298,17 @@ for (m_file in model_files) {
     model_bundled <- readRDS(m_file)
     model_obj     <- bundle::unbundle(model_bundled)
     
-    clean_df <- current_df %>% 
+    # 1. ADDED: Add dummy geometry column to the current dataframe
+    current_df_geo <- current_df %>% mutate(geometry = NA)
+    
+    clean_df <- current_df_geo %>% 
       dplyr::select(dplyr::all_of(fishery_predictors)) %>%
       as_tibble()
     
     # --- DYNAMIC CPUE vs PA LOGIC ---
-    # Determine if this model is a CPUE target based on the filename
-    is_cpue_model <- grepl("swordfish", model_name, ignore.case = TRUE) || 
-                     grepl("tuna_yellowfin", model_name, ignore.case = TRUE)
+    # 2. FIXED: Added "^" to only match if the filename starts with the species name
+    is_cpue_model <- grepl("^swordfish_", model_name, ignore.case = TRUE) || 
+                     grepl("^tuna_yellowfin_", model_name, ignore.case = TRUE)
     
     if (is_cpue_model) {
       # 1. Predict Raw CPUE
@@ -313,8 +318,8 @@ for (m_file in model_files) {
       cpue_99 <- quantile(raw_preds, probs = 0.99, na.rm = TRUE)
       if (cpue_99 > 0) {
         preds <- raw_preds / cpue_99
-        preds[preds > 1] <- 1  # Clamp maximums to 1
-        preds[preds < 0] <- 0  # Clamp minimums to 0
+        preds[preds > 1] <- 1  
+        preds[preds < 0] <- 0  
       } else {
         preds <- raw_preds * 0
       }
@@ -342,6 +347,7 @@ for (m_file in model_files) {
     message(glue("  -> ERROR predicting {model_name}: {e$message}"))
   })
 }
+
 # ----------------------------------------------------------------
 # 7. EXPORT ENVIRONMENTAL LAYERS
 # ----------------------------------------------------------------
