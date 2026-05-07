@@ -41,3 +41,8 @@ vignettes/*.pdf
 .Renviron
 
 
+model_prediction/gulf/predictions/PRED_2026-02-13_leatherback.tif
+model_prediction/gulf/results/inla.st.etag.2to1.rds
+model_prediction/gulf/results/lean_leatherback_model.rds
+model_prediction/gulf/results/lean_leatherback_model.rds
+model_prediction/gulf/results/lean_leatherback_model.rds
