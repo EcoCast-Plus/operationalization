@@ -272,7 +272,7 @@ for (m_file in model_files) {
   is_yellowfin_target <- grepl("Yellowfin_Target", model_name)
   is_depredation      <- grepl("Depredation", model_name)
   
-  # --- NEW: Skip Utility Models (Prevents dplyr::all_of crashes) ---
+  # Skip Utility Models (Prevents dplyr::all_of crashes)
   if (!is_swordfish_target && !is_yellowfin_target) {
     message(glue("Skipping {model_name}: Not a standard Swordfish or Yellowfin target model."))
     next
@@ -295,13 +295,33 @@ for (m_file in model_files) {
     model_bundled <- readRDS(m_file)
     model_obj     <- bundle::unbundle(model_bundled)
     
-    # Fishery & Depredation use tidymodels stacked ensembles
     clean_df <- current_df %>% 
       dplyr::select(dplyr::all_of(fishery_predictors)) %>%
       as_tibble()
     
-    preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
-    preds <- as.numeric(preds_prob$.pred_presence)
+    # --- DYNAMIC CPUE vs PA LOGIC ---
+    # Determine if this model is a CPUE target based on the filename
+    is_cpue_model <- grepl("swordfish", model_name, ignore.case = TRUE) || 
+                     grepl("tuna_yellowfin", model_name, ignore.case = TRUE)
+    
+    if (is_cpue_model) {
+      # 1. Predict Raw CPUE
+      raw_preds <- predict(model_obj, new_data = clean_df, type = "numeric")$.pred
+      
+      # 2. Scale to 0-1 (99th percentile) to match PA formats for GulfCast math
+      cpue_99 <- quantile(raw_preds, probs = 0.99, na.rm = TRUE)
+      if (cpue_99 > 0) {
+        preds <- raw_preds / cpue_99
+        preds[preds > 1] <- 1  # Clamp maximums to 1
+        preds[preds < 0] <- 0  # Clamp minimums to 0
+      } else {
+        preds <- raw_preds * 0
+      }
+    } else {
+      # Bycatch models remain standard PA probability
+      preds_prob <- predict(model_obj, new_data = clean_df, type = "prob")
+      preds <- as.numeric(preds_prob$.pred_presence)
+    }
     
     # --- Rasterize and Save ---
     if (!is.null(preds)) {
@@ -321,7 +341,6 @@ for (m_file in model_files) {
     message(glue("  -> ERROR predicting {model_name}: {e$message}"))
   })
 }
-
 # ----------------------------------------------------------------
 # 7. EXPORT ENVIRONMENTAL LAYERS
 # ----------------------------------------------------------------
