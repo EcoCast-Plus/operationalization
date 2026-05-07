@@ -105,7 +105,6 @@ r_vgosa      <- load_raw("vgosa", "vgosa")
 # 3. Load Subsurface & Others
 r_bottom_t   <- load_raw("bottom_t", "tob")
 r_thetao_150 <- load_raw("thetao_150m", "thetao")
-r_thetao_500 <- load_raw("thetao_500m", "thetao")
 r_mld        <- load_raw("mld", "mlotst")
 r_so         <- load_raw("so", "so")
 
@@ -150,7 +149,6 @@ env_stack_dynamic <- c(
   validate_layer(r_ssh, "zos", master_grid),
   validate_layer(r_bottom_t, "bottom_t", master_grid),
   validate_layer(r_thetao_150, "thetao_150m", master_grid),
-  validate_layer(r_thetao_500, "thetao_500m", master_grid),
   validate_layer(r_eke, "eke", master_grid),       
   validate_layer(r_tke, "tke", master_grid),       
   validate_layer(r_fronts, "front_z", master_grid), 
@@ -251,7 +249,7 @@ if(nrow(pred_df) == 0) stop("Terminating due to empty prediction frame.")
 fishery_predictors <- c(
   "soak_duration", "doy", "mlotst", "so", "thetao", "uo", "vo", "zos", 
   "sst_anomaly", "ssh_anomaly", "moon_angle", "chl", "front_z", "eke", 
-  "tke", "thetao_150m", "thetao_500m", "day_hours", "night_hours", 
+  "tke", "thetao_150m", "day_hours", "night_hours", 
   "hooks_rule", "number_light_sticks", "number_of_floats", "depth", "dfrom_shore",
   "geometry" # <--- ADDED: Prevents CPUE tidymodels from crashing
 )
@@ -366,7 +364,6 @@ env_map <- list(
   "dfrom_shore" = "distance_to_shore",
   "front_z"     = "front_z",       
   "thetao_150m" = "thetao_150m",   
-  "thetao_500m" = "thetao_500m",   
   "uo"          = "uo",            
   "vo"          = "vo"             
 )
