@@ -31,7 +31,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 23 # Bump to 23 for the new R 4.4 environment
+        cache-version: 24 # Bump to 23 for the new R 4.4 environment
         install-quarto: false 
         packages: |
           bioc::graph
@@ -46,7 +46,7 @@ jobs:
           any::stringr
           any::fmesher
           any::BiocManager
-          any::xgboost@1.7.7.1
+          any::xgboost
           any::stacks@1.0.5
           any::tidysdm@1.0.0
           any::bundle@0.1.2
