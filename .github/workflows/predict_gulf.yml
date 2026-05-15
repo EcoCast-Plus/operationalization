@@ -38,6 +38,7 @@ jobs:
           any::sf
           any::stringr
           any::ggplot2
+          any::sn
           any::tidyterra
           any::googleCloudStorageR
           any::inlabru@2.12.0
