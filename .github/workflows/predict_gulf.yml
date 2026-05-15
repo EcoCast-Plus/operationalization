@@ -30,12 +30,16 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 1 # Increment if needed
+        cache-version: 3 
         install-quarto: false 
         packages: |
           any::dplyr
           any::terra
           any::sf
+          any::stringr
+          any::ggplot2
+          any::tidyterra
+          any::googleCloudStorageR
           any::inlabru@2.12.0
           any::INLA
           
