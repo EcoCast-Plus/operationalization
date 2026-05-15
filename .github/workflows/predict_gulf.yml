@@ -10,63 +10,84 @@ permissions:
   contents: write
 
 jobs:
-  predict-gulf:
+  # ---------------------------------------------------------
+  # JOB 1: INLA Models (Modern Environment)
+  # ---------------------------------------------------------
+  predict-inla:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    # Update to 4.4 (Ubuntu 24.04) to satisfy INLA's new glibc requirements
     container: ghcr.io/rocker-org/geospatial:4.4
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
 
     - name: Configure R Repositories
-      # Globally registers the INLA server so pak knows where to find it
       run: |
         echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
 
-    - name: Install R Dependencies with Version Locking
+    - name: Install INLA Dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 25 # Bump to 23 for the new R 4.4 environment
+        cache-version: 1 # Increment if needed
         install-quarto: false 
         packages: |
-          bioc::graph
-          bioc::Rgraphviz
           any::dplyr
           any::terra
           any::sf
-          any::ggplot2
-          any::tidyterra
-          any::remotes
-          any::googleCloudStorageR
-          any::stringr
-          any::fmesher
-          any::BiocManager
-          any::xgboost@1.7.7.1
-          any::stacks@1.0.5
-          any::tidysdm@1.0.0
-          any::bundle@0.1.1
-          any::themis@1.0.3
-          any::sn
-          any::ranger
-          any::mgcv
-          any::oce
-          any::tidymodels@1.2.0
-          any::workflows@1.1.4
-          any::parsnip@1.2.1
-          any::glue
-          any::lubridate
-          any::grec
-          any::ncdf4
           any::inlabru@2.12.0
           any::INLA
-          any::rnaturalearth      
-          any::rnaturalearthdata
+          # Add any other specific packages your INLA scripts need
           
+    - name: Set up Google Cloud Auth
+      env:
+        GCS_SECRET: ${{ secrets.GCS_SA_KEY }}
+      run: |
+        printf "%s" "$GCS_SECRET" > gcs_auth.json
+        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
+
+    - name: Run Leatherback Turtle Prediction (INLA)
+      continue-on-error: true 
+      run: Rscript model_prediction/R/predict_leatherback_gulf.R
+
+  # ---------------------------------------------------------
+  # JOB 2: Tidymodels & XGBoost (Time Capsule Environment)
+  # ---------------------------------------------------------
+  predict-tidymodels:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    # Lock this to the exact R version from your local machine
+    container: ghcr.io/rocker-org/geospatial:4.3.2
+    
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Install Tidymodels Dependencies
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: true 
+        cache-version: 1 # Increment if needed
+        install-quarto: false 
+        packages: |
+          any::dplyr
+          any::terra
+          any::sf
+          any::glue
+          any::lubridate
+          any::ncdf4
+          any::xgboost@1.7.7.1
+          any::bundle@0.1.2
+          any::parsnip@1.2.1
+          any::workflows@1.1.4
+          any::tidymodels@1.2.0
+          any::recipes@1.3.1
+          any::tidysdm@1.0.0
+          any::stacks@1.0.5
+          any::grec
+          any::oce
+
     - name: Run General Species Predictions
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_gulf.R
@@ -75,37 +96,31 @@ jobs:
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_manta.R
 
-    - name: Set up Google Cloud Auth
-      env:
-        GCS_SECRET: ${{ secrets.GCS_SA_KEY }}
-      run: |
-        printf "%s" "$GCS_SECRET" > gcs_auth.json
-        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
-
-    - name: Run Leatherback Turtle Prediction
-      continue-on-error: true 
-      run: Rscript model_prediction/R/predict_leatherback_gulf.R
-
+  # ---------------------------------------------------------
+  # JOB 3: Commit and Push (Runs after both are done)
+  # ---------------------------------------------------------
+  commit-results:
+    needs: [predict-inla, predict-tidymodels]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+      
     - name: Commit and Push
       run: |
-        # Fix for Git inside Docker complaining about directory ownership
         git config --global --add safe.directory '*'
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
         
-        # --- NEW: Prevent Git from choking on large binary TIFF pushes ---
         git config --global http.postBuffer 524288000
         git config --global http.maxRequestBuffer 100M
         git config --global core.compression 0
         
-        # 1. Stage the new predictions first
         git add model_prediction/gulf/predictions/*.tif || echo "No TIFs"
         git add model_prediction/gulf/predictions/*.png || echo "No PNGs"
         
-        # 2. Pull with rebase and autostash
         git pull origin main --rebase --autostash
         
-        # 3. Finalize and push
         if git diff --staged --quiet; then
           echo "No changes to commit."
         else
