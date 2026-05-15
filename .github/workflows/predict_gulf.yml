@@ -55,6 +55,13 @@ jobs:
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
+    - name: Upload INLA Predictions
+      uses: actions/upload-artifact@v4
+      with:
+        name: inla-predictions
+        path: model_prediction/gulf/predictions/
+        retention-days: 1
+
   # ---------------------------------------------------------
   # JOB 2: Tidymodels & XGBoost (Time Capsule Environment)
   # ---------------------------------------------------------
@@ -102,16 +109,38 @@ jobs:
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_manta.R
 
+    - name: Upload Tidymodels Predictions
+      uses: actions/upload-artifact@v4
+      with:
+        name: tidymodels-predictions
+        path: model_prediction/gulf/predictions/
+        retention-days: 1
+
   # ---------------------------------------------------------
   # JOB 3: Commit and Push (Runs after both are done)
   # ---------------------------------------------------------
   commit-results:
     needs: [predict-inla, predict-tidymodels]
     runs-on: ubuntu-latest
+    if: ${{ !cancelled() }} 
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
       
+    - name: Download INLA Predictions
+      uses: actions/download-artifact@v4
+      continue-on-error: true 
+      with:
+        name: inla-predictions
+        path: model_prediction/gulf/predictions/
+
+    - name: Download Tidymodels Predictions
+      uses: actions/download-artifact@v4
+      continue-on-error: true 
+      with:
+        name: tidymodels-predictions
+        path: model_prediction/gulf/predictions/
+        
     - name: Commit and Push
       run: |
         git config --global --add safe.directory '*'
