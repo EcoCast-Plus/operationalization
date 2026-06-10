@@ -1,5 +1,5 @@
 # ==============================================================================
-# PREDICT LEATHERBACK GULF - Marginal Effects Lookup Method
+# PREDICT LEATHERBACK GULF - Final Marginal Effects + Spatial Baseline
 # ==============================================================================
 
 library(terra)
@@ -19,7 +19,8 @@ OUTPUT_DIR <- "model_prediction/gulf/predictions"
 local_dir  <- "model_prediction/gulf/results"
 if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
 
-date_str <- as.character(Sys.Date() + 1)
+date_str     <- as.character(Sys.Date() + 1)
+target_month <- as.numeric(format(Sys.Date() + 1, "%m"))
 
 # --- 2. DOWNLOAD MARGINAL EFFECTS PAYLOAD FROM GITHUB ---
 message("Fetching marginal effects payload from GitHub...")
@@ -79,8 +80,8 @@ covars_list <- map(covar_to_tif, find_tif)
 covars_list[["l.chl_s"]]      <- log(covars_list[["l.chl_s"]]      + 0.001)
 covars_list[["l.tke_mean_s"]] <- log(covars_list[["l.tke_mean_s"]] + 0.001)
 
-# --- 5. PREDICT VIA RUNNING SUM (memory-efficient) ---
-message("Generating prediction via marginal effects lookup...")
+# --- 5. PREDICT VIA RUNNING SUM (Environmental Only) ---
+message("Generating environmental prediction via marginal effects lookup...")
 running_sum <- NULL
 
 for (j in seq_along(covars_list)) {
@@ -99,19 +100,45 @@ for (j in seq_along(covars_list)) {
   message(glue("  Done: {cov_name}"))
 }
 
-mean_pred <- rowMeans(running_sum)
+# Average across the posterior samples to get the mean linear predictor
+mean_pred_env <- rowMeans(running_sum)
 rm(running_sum); gc()
 
-# --- 6. BACK TO RASTER & EXPORT ---
-message("Writing outputs...")
+# --- 5.5 ADD SPATIAL FIELD & INTERCEPT ---
+message(glue("Adding spatial field and intercept for Month: {target_month}..."))
 
-# Use sst as the raster template (all layers share the same grid)
+# Load Mitch's 12-band spatial TIF
+spatial_tif_path <- file.path(local_dir, "etag_spatial_baseline_12months.tif")
+if (!file.exists(spatial_tif_path)) stop("CRITICAL: Spatial baseline TIF not found in results folder!")
+
+r_spatial_stack <- terra::rast(spatial_tif_path)
+
+# Pull out the specific layer for tomorrow's forecast month
+r_spatial_current <- r_spatial_stack[[target_month]]
+
+# Safety check: Ensure geometries perfectly match the environmental template
 r_template <- covars_list[["thetao_s"]][[1]]
-r_out      <- terra::setValues(r_template, mean_pred)
+if (!terra::compareGeom(r_spatial_current, r_template, stopOnError = FALSE)) {
+  message("  -> Resampling spatial baseline to match environmental grid...")
+  r_spatial_current <- terra::resample(r_spatial_current, r_template, method = "bilinear")
+}
+
+# Extract spatial baseline values
+spatial_baseline_vals <- as.vector(values(r_spatial_current))
+
+# Combine environmental and spatial components
+final_linear_predictor <- mean_pred_env + spatial_baseline_vals
+
+# --- 6. BACK TO RASTER & EXPORT ---
+message("Applying logit transform and writing outputs...")
+
+# Map the combined linear predictor back to the grid
+r_out <- terra::setValues(r_template, final_linear_predictor)
 
 # Apply logistic transform to get 0-1 probability scale
 r_prob <- app(r_out, plogis)
 
+# Export Rasters
 writeRaster(r_prob,
             file.path(OUTPUT_DIR, paste0("PRED_", date_str, "_leatherback.tif")),
             overwrite = TRUE)
@@ -119,11 +146,12 @@ writeRaster(r_prob > 0.71,
             file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif")),
             overwrite = TRUE)
 
+# Generate Plot
 p <- ggplot() +
   geom_spatraster(data = r_prob) +
   scale_fill_viridis_c(option = "mako", na.value = "transparent") +
   theme_minimal() +
-  labs(title = paste("Leatherback prediction:", date_str),
+  labs(title = paste("Leatherback Prediction:", date_str),
        fill = "Probability")
 
 ggsave(file.path(OUTPUT_DIR, paste0("PLOT_", date_str, "_leatherback.png")),
