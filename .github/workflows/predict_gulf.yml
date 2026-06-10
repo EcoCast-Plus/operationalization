@@ -14,7 +14,7 @@ jobs:
   # JOB 1: Leatherback (Marginal Effects Lookup — no INLA)
   # ---------------------------------------------------------
   predict-leatherback:
-    needs: [predict-tidymodels]    # <-- add this
+    needs: [predict-tidymodels]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     container: ghcr.io/rocker-org/geospatial:4.4
@@ -40,13 +40,14 @@ jobs:
           any::tidyterra
 
     - name: Run Leatherback Turtle Prediction
-      continue-on-error: true
+      continue-on-error: true        # <-- step-level: R errors don't fail the job
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
     - name: Upload Leatherback Predictions
       uses: actions/upload-artifact@v4
+      continue-on-error: true        # <-- if no files were produced, don't fail the job
       with:
-        name: inla-predictions      # keep this name so commit-results job still works unchanged
+        name: inla-predictions
         path: model_prediction/gulf/predictions/
         retention-days: 1
 
