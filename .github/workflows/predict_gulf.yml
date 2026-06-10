@@ -11,56 +11,45 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------
-  # JOB 1: INLA Models (Modern Environment)
+  # JOB 1: Leatherback (Marginal Effects Lookup — no INLA)
   # ---------------------------------------------------------
-  predict-inla:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+  predict-leatherback:
+    needs: [predict-tidymodels]    # <-- add this
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     container: ghcr.io/rocker-org/geospatial:4.4
-    
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
 
-    - name: Configure R Repositories
-      run: |
-        echo 'options(repos = c(CRAN = "https://cloud.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"))' > ~/.Rprofile
-
-    - name: Install INLA Dependencies
+    - name: Install R dependencies
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
-        cache: true 
-        cache-version: 3 
-        install-quarto: false 
+        cache: true
+        cache-version: 1
+        install-quarto: false
         packages: |
           any::dplyr
+          any::purrr
           any::terra
           any::sf
           any::stringr
+          any::glue
           any::ggplot2
-          any::sn
           any::tidyterra
-          any::googleCloudStorageR
-          any::inlabru@2.12.0
-          any::INLA
-          
-    - name: Set up Google Cloud Auth
-      env:
-        GCS_SECRET: ${{ secrets.GCS_SA_KEY }}
-      run: |
-        printf "%s" "$GCS_SECRET" > gcs_auth.json
-        echo "GCS_AUTH_FILE=$(pwd)/gcs_auth.json" >> $GITHUB_ENV
 
-    - name: Run Leatherback Turtle Prediction (INLA)
-      continue-on-error: true 
+    - name: Run Leatherback Turtle Prediction
+      continue-on-error: true
       run: Rscript model_prediction/R/predict_leatherback_gulf.R
 
-    - name: Upload INLA Predictions
+    - name: Upload Leatherback Predictions
       uses: actions/upload-artifact@v4
       with:
-        name: inla-predictions
+        name: inla-predictions      # keep this name so commit-results job still works unchanged
         path: model_prediction/gulf/predictions/
         retention-days: 1
+
 
   # ---------------------------------------------------------
   # JOB 2: Tidymodels & XGBoost (Time Capsule Environment)
@@ -120,7 +109,7 @@ jobs:
   # JOB 3: Commit and Push (Runs after both are done)
   # ---------------------------------------------------------
   commit-results:
-    needs: [predict-inla, predict-tidymodels]
+    needs: [predict-leatherback, predict-tidymodels]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }} 
     steps:
