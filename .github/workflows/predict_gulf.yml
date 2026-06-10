@@ -11,54 +11,12 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------
-  # JOB 1: Leatherback (Marginal Effects Lookup — no INLA)
-  # ---------------------------------------------------------
-  predict-leatherback:
-    needs: [predict-tidymodels]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    container: ghcr.io/rocker-org/geospatial:4.4
-
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v4
-
-    - name: Install R dependencies
-      uses: r-lib/actions/setup-r-dependencies@v2
-      with:
-        cache: true
-        cache-version: 1
-        install-quarto: false
-        packages: |
-          any::dplyr
-          any::purrr
-          any::terra
-          any::sf
-          any::stringr
-          any::glue
-          any::ggplot2
-          any::tidyterra
-
-    - name: Run Leatherback Turtle Prediction
-      continue-on-error: true        # <-- step-level: R errors don't fail the job
-      run: Rscript model_prediction/R/predict_leatherback_gulf.R
-
-    - name: Upload Leatherback Predictions
-      uses: actions/upload-artifact@v4
-      continue-on-error: true        # <-- if no files were produced, don't fail the job
-      with:
-        name: inla-predictions
-        path: model_prediction/gulf/predictions/
-        retention-days: 1
-
-
-  # ---------------------------------------------------------
-  # JOB 2: Tidymodels & XGBoost (Time Capsule Environment)
+  # JOB 1: Tidymodels & XGBoost (Time Capsule Environment)
+  # (Moved to the top logically since it generates the env data)
   # ---------------------------------------------------------
   predict-tidymodels:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    # Lock this to the exact R version from your local machine
     container: ghcr.io/rocker-org/geospatial:4.3.2
     
     steps:
@@ -69,7 +27,7 @@ jobs:
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: true 
-        cache-version: 2 # Bump this to clear out the failed cache
+        cache-version: 2
         install-quarto: false 
         packages: |
           any::dplyr
@@ -99,12 +57,62 @@ jobs:
       continue-on-error: true 
       run: Rscript model_prediction/R/predict_manta.R
 
-    - name: Upload Tidymodels Predictions
+    - name: Upload Tidymodels Predictions & Env Layers
       uses: actions/upload-artifact@v4
       with:
         name: tidymodels-predictions
         path: model_prediction/gulf/predictions/
         retention-days: 1
+
+
+  # ---------------------------------------------------------
+  # JOB 2: Leatherback (Marginal Effects Lookup — no INLA)
+  # ---------------------------------------------------------
+  predict-leatherback:
+    needs: [predict-tidymodels] # Waits for Job 1 to finish
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/rocker-org/geospatial:4.4
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    # ---> THIS IS THE MISSING LINK <---
+    - name: Download Environmental Layers from Tidymodels Job
+      uses: actions/download-artifact@v4
+      with:
+        name: tidymodels-predictions
+        path: model_prediction/gulf/predictions/
+
+    - name: Install R dependencies
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: true
+        cache-version: 1
+        install-quarto: false
+        packages: |
+          any::dplyr
+          any::purrr
+          any::terra
+          any::sf
+          any::stringr
+          any::glue
+          any::ggplot2
+          any::tidyterra
+
+    - name: Run Leatherback Turtle Prediction
+      continue-on-error: true        
+      run: Rscript model_prediction/R/predict_leatherback_gulf.R
+
+    - name: Upload Leatherback Predictions
+      uses: actions/upload-artifact@v4
+      continue-on-error: true        
+      with:
+        name: inla-predictions
+        path: model_prediction/gulf/predictions/
+        retention-days: 1
+
 
   # ---------------------------------------------------------
   # JOB 3: Commit and Push (Runs after both are done)
