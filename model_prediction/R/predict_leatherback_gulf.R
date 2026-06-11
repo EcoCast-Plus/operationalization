@@ -149,8 +149,6 @@ writeRaster(r_prob,
 # 3. Create Core Area and explicitly convert TRUE/FALSE to 1/0 for safe GDAL writing
 message("Saving CORE tif...")
 r_core <- r_prob > 0.71
-r_core <- terra::as.numeric(r_core) 
-names(r_core) <- "core_habitat"
 
 writeRaster(r_core,
             file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif")),
