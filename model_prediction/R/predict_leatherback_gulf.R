@@ -133,7 +133,7 @@ final_linear_predictor <- mean_pred_env + spatial_baseline_vals
 # --- 6. BACK TO RASTER & EXPORT ---
 message("Applying logit transform and writing outputs...")
 
-# 1. Apply probabilities directly on the vector (safer and faster than terra::app in GitHub Actions)
+# 1. Apply probabilities directly on the vector (safer and faster)
 final_probabilities <- plogis(final_linear_predictor)
 
 # 2. Map the final probabilities back to the grid
@@ -146,15 +146,13 @@ writeRaster(r_prob,
             file.path(OUTPUT_DIR, paste0("PRED_", date_str, "_leatherback.tif")),
             overwrite = TRUE)
 
-# 3. Create Core Area and explicitly convert TRUE/FALSE to 1/0 for safe GDAL writing
+# Export Core Area using your requested inline syntax
 message("Saving CORE tif...")
-r_core <- r_prob > 0.71
-
-writeRaster(r_core,
+writeRaster(r_prob > 0.71,
             file.path(OUTPUT_DIR, paste0("CORE_", date_str, "_leatherback.tif")),
             overwrite = TRUE)
 
-# 4. Generate Plot with explicit white background
+# Generate Plot with explicit white background
 message("Saving PLOT png...")
 p <- ggplot() +
   geom_spatraster(data = r_prob) +
