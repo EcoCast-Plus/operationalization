@@ -94,7 +94,7 @@ r_sst        <- load_raw("thetao", "thetao")
 master_grid  <- r_sst 
 
 r_ssh        <- load_raw("ssh", "zos")
-r_chl        <- load_raw("l.chl", "CHL")
+r_chl        <- load_raw("l.chl", "chl")
 r_uo         <- load_raw("uo", "uo")     # Total Eastward Current
 r_vo         <- load_raw("vo", "vo")     # Total Northward Current
 
