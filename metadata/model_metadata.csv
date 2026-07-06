@@ -17,7 +17,7 @@ ROMS,EKE,,ROMS,EKE,derived,ROMS_lbst,,
 METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2,analysed_sst,https://data.marine.copernicus.eu/product/SST_GLO_SST_L4_NRT_OBSERVATIONS_010_001/description,CMEMS,sst,raw,TopPred_lbst,,
 cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m,nppv,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description,CMEMS,PPupper200m,raw,TopPred_lbst,0,200
 cmems_obs-sl_glo_phy-ssh_nrt_allsat-l4-duacs-0.125deg_P1D,sla,https://data.marine.copernicus.eu/product/SEALEVEL_GLO_PHY_L4_NRT_008_046/description,CMEMS,sla,raw,TopPred_lbst,,
-cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m,chl,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description/description,CMEMS,l.chl,raw,TopPred_lbst,,
+cmems_mod_glo_bgc-pft_anfc_0.25deg_P1D-m,chl,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description/description,CMEMS,l.chl,raw,TopPred_lbst,,
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,mlotst,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_PHY_001_024/description,CMEMS,mld,raw,TopPred_lbst,,
 cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m,o2,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description,CMEMS,oxy200m,raw,TopPred_lbst,0,200
 Other,day,,Other,day,raw,TopPred_lbst,,
@@ -34,11 +34,10 @@ cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m,so,,CMEMS,so,raw,Gulf_Model,0.5,0.5
 cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m,uo,,CMEMS,uo,raw,Gulf_Model,0.5,0.5
 cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m,vo,,CMEMS,vo,raw,Gulf_Model,0.5,0.5
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,zos,,CMEMS,ssh,raw,Gulf_Model,,
-cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m,chl,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description/description,CMEMS,l.chl,raw,Gulf_Model,0.5,0.5
+cmems_mod_glo_bgc-pft_anfc_0.25deg_P1D-m,chl,https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_BGC_001_028/description/description,CMEMS,l.chl,raw,Gulf_Model,0.5,0.5
 cmems_mod_glo_phy_anfc_0.083deg_P1D-m,mlotst,,CMEMS,mld,raw,Gulf_Model,,
 cmems_obs-sl_glo_phy-ssh_nrt_allsat-l4-duacs-0.125deg_P1D,ugosa,https://data.marine.copernicus.eu/product/SEALEVEL_GLO_PHY_L4_NRT_008_046/description,CMEMS,,,Gulf_Model,,
 cmems_obs-sl_glo_phy-ssh_nrt_allsat-l4-duacs-0.125deg_P1D,vgosa,https://data.marine.copernicus.eu/product/SEALEVEL_GLO_PHY_L4_NRT_008_046/description,CMEMS,,,Gulf_Model,,
-
 
 
 
