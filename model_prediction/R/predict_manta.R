@@ -138,7 +138,7 @@ r_fronts <- terra::mask(r_fronts, master_grid)
 names(r_fronts) <- "Front_Z"
 
 # 4. Chlorophyll (l.chl)
-r_chl_full <- load_raw("l.chl", "CHL")
+r_chl_full <- load_raw("l.chl", "chl")
 
 # Crop Chl to grid
 r_chl_cropped <- terra::crop(r_chl_full, master_grid, snap = "out")
