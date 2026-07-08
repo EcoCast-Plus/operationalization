@@ -46,7 +46,7 @@ jobs:
           any::recipes@1.3.1
           any::tidysdm@1.0.0
           any::stacks@1.0.5
-          any::grec@1.6.1
+          any::grec@1.5.0
           any::oce
 
     - name: Run General Species Predictions
