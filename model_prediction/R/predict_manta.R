@@ -40,7 +40,19 @@ load_raw <- function(var_name, nc_var) {
   
   # Loop through files from newest to oldest until we find valid data
   for (f in files_sorted) {
-    r <- rast(f)[nc_var][[1]]
+    
+    # --- FIX START ---
+    r_full <- rast(f)
+    
+    # Find the layer index that contains the variable name, fallback to layer 1 if not found
+    layer_idx <- grep(nc_var, names(r_full), ignore.case = TRUE)[1]
+    if (is.na(layer_idx)) {
+      layer_idx <- 1
+    }
+    
+    # Extract the layer as a SpatRaster using double brackets
+    r <- r_full[[layer_idx]]
+    # --- FIX END ---
     
     # Calculate raster statistics
     stats <- global(r, fun = c("min", "max", "notNA"), na.rm = TRUE)
@@ -60,14 +72,12 @@ load_raw <- function(var_name, nc_var) {
     }
   }
   
-  # If every file is empty, return 0s as absolute last resort
   message(glue("CRITICAL WARNING: All available files for {var_name} are empty! Returning 0s as absolute last resort."))
-  r <- rast(files_sorted[1])[nc_var][[1]]
+  r <- rast(files_sorted[1])[[1]] # Apply safe extraction here too
   if (ext(r)$xmax > 180) r <- rotate(r)
   r <- r * 0 
   return(r)
 }
-
 # ----------------------------------------------------------------
 # 4. MAIN PROCESSING
 # ----------------------------------------------------------------
