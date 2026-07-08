@@ -59,7 +59,7 @@ jobs:
       with:
         cache: always
         # Force a new cache key just in case
-        cache-version: 2
+        cache-version: 3
         packages: |
           any::dplyr
           any::readr
