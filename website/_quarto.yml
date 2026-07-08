@@ -35,7 +35,7 @@ website:
 
       # PLACEHOLDERS
       - text: "Hawaii"
-        href: hawaii/placeholder.qmd
+        href: hawaii/DSLL_HI.qmd
       - text: "South Atlantic"
         href: south_atlantic/placeholder.qmd
       - text: "Northwest"
