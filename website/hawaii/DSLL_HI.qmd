@@ -1,0 +1,22 @@
+---
+title: "HICast: Deep-set Longline Bycatch Reduction Tool"
+page-layout: full
+toc: false
+---
+
+<div class="d-block d-md-none text-center mb-3">
+  <a href="https://gabriella-mukai.shinyapps.io/HICast/" target="_blank" class="btn btn-primary btn-lg">
+    <i class="bi bi-phone"></i> Open Mobile-Friendly View
+  </a>
+</div>
+
+::: {.column-screen-inset}
+<!-- The allow="geolocation" attribute here is critical for the widget to work -->
+<iframe 
+  src="https://gabriella-mukai.shinyapps.io/HICast/" 
+  width="100%" 
+  height="950px" 
+  allow="geolocation" 
+  style="border:none; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+</iframe>
+:::
