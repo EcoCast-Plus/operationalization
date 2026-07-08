@@ -25,7 +25,7 @@
     "href": "index.html",
     "title": "\nEcoCast Plus\n",
     "section": "",
-    "text": "Operational Dynamic Ocean Management\n\n\nDelivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.\n\n\n\n\n\n\n\nRegional Toolkits\n\n\nSelect a region to access operational models.\n\n\n\n\n\n\n\n\n\nWest Coast\n\n\nLeatherback & Swordfish Tools\n\n\n\n\n\n\n\n\n\nGulf of America\n\n\nPelagic Longline Optimization\n\n\n\n\n\n\n\n\nHawaii\n\n\nComing Soon\n\n\n\n\n\n\n\nSouth Atlantic\n\n\nComing Soon\n\n\n\n\n\n\n\nNorthwest\n\n\nComing Soon\n\n\n\n\n\n\n\nAlaska\n\n\nComing Soon\n\n\n\n\n\n\n\nAbout the Initiative\n\n\nEcoCast Plus integrates real-time oceanographic data from Copernicus Marine Service (CMEMS) and ROMS models to generate daily predictive surfaces. Our goal is to maximize fishing opportunity while minimizing bycatch interactions.\n\n\n\n\nSystem Status\n\n\n\n\n Data Feeds: Active (CMEMS/ROMS)\n\n\n Models: Operational\n\n\n\n\nTechnical Support:\n\n\n  Sarah Roberts (NOAA) \n\n\n  Josh Cullen (UCSC) \n\n\n\n\n\n\n\nHelp Us Improve\n\n\nWe actively update these tools based on stakeholder input. If you encounter a bug or have a suggestion, please let us know.\n\n  Provide Feedback"
+    "text": "Operational Dynamic Ocean Management\n\n\nDelivering real-time species distribution models to support sustainable fisheries and protected species conservation across U.S. waters.\n\n\n\n\n\n\n\nRegional Toolkits\n\n\nSelect a region to access operational models.\n\n\n\n\n\n\n\n\n\nWest Coast\n\n\nLeatherback & Swordfish Tools\n\n\n\n\n\n\n\n\n\nGulf of America\n\n\nPelagic Longline Optimization\n\n\n\n\n\n\n\n\n\nHawaii\n\n\nDeep-Set Longline Tools\n\n\n\n\n\n\n\n\nSouth Atlantic\n\n\nComing Soon\n\n\n\n\n\n\n\nNorthwest\n\n\nComing Soon\n\n\n\n\n\n\n\nAlaska\n\n\nComing Soon\n\n\n\n\n\n\n\nAbout the Initiative\n\n\nEcoCast Plus integrates real-time oceanographic data from Copernicus Marine Service (CMEMS) and ROMS models to generate daily predictive surfaces. Our goal is to maximize fishing opportunity while minimizing bycatch interactions.\n\n\n\n\nSystem Status\n\n\n\n\n Data Feeds: Active (CMEMS/ROMS)\n\n\n Models: Operational\n\n\n\n\nTechnical Support:\n\n\n  Sarah Roberts (NOAA) \n\n\n  Josh Cullen (UCSC) \n\n\n\n\n\n\n\nHelp Us Improve\n\n\nWe actively update these tools based on stakeholder input. If you encounter a bug or have a suggestion, please let us know.\n\n  Provide Feedback"
   },
   {
     "objectID": "gulf/pelagic_longline.html",
@@ -49,18 +49,11 @@
     "text": "Coming soon"
   },
   {
-    "objectID": "hawaii/placeholder.html",
-    "href": "hawaii/placeholder.html",
-    "title": "EcoCast Plus",
+    "objectID": "hawaii/DSLL_HI.html",
+    "href": "hawaii/DSLL_HI.html",
+    "title": "HICast: Deep-set Longline Bycatch Reduction Tool",
     "section": "",
-    "text": "Coming soon"
-  },
-  {
-    "objectID": "hawaii/placeholder.html#hawaii",
-    "href": "hawaii/placeholder.html#hawaii",
-    "title": "EcoCast Plus",
-    "section": "",
-    "text": "Coming soon"
+    "text": "Open Mobile-Friendly View"
   },
   {
     "objectID": "northwest/placeholder.html",
