@@ -27,17 +27,15 @@ website:
           - text: "LBST & CMEMS Data"
             href: west_coast/lbst_cmems.qmd
 
-      # GULF OF AMERICA
-      - text: "Gulf of America"
+      # SOUTHEAST
+      - text: "Southeast"
         menu:
-          - text: "GulfCast: Pelagic Longline Optimization"
+          - text: "GulfCast: Gulf Pelagic Longline Optimization"
             href: gulf/pelagic_longline.qmd
 
       # PLACEHOLDERS
       - text: "Hawaii"
         href: hawaii/DSLL_HI.qmd
-      - text: "South Atlantic"
-        href: south_atlantic/placeholder.qmd
       - text: "Northwest"
         href: northwest/placeholder.qmd
       - text: "Alaska"
