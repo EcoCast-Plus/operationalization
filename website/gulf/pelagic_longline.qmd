@@ -5,7 +5,7 @@ toc: false
 ---
 
 <div class="d-block d-md-none text-center mb-3">
-  <a href="https://connect.fisheries.noaa.gov/GulfCast/" target="_blank" class="btn btn-primary btn-lg">
+  <a href="https://019f8ab8-a984-3a43-5ed9-fbc7e723a1f5.share.connect.posit.cloud/" target="_blank" class="btn btn-primary btn-lg">
     <i class="bi bi-phone"></i> Open Mobile-Friendly View
   </a>
 </div>
@@ -13,7 +13,7 @@ toc: false
 ::: {.column-screen-inset}
 <!-- The allow="geolocation" attribute here is critical for the widget to work -->
 <iframe 
-  src="https://connect.fisheries.noaa.gov/GulfCast/" 
+  src="https://019f8ab8-a984-3a43-5ed9-fbc7e723a1f5.share.connect.posit.cloud/" 
   width="100%" 
   height="950px" 
   allow="geolocation" 
